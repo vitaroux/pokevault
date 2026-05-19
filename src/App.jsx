@@ -17,10 +17,7 @@ const defaultData = {
     { id: 14, name: "Noctali (Umbreon)", numero: "06/15", set: "Chinese Gem Pack Vol. 2 CBB2C", langue: "CN", statut: "En transit", achat: 131.75, valeur: 131.75, notes: "Poche CN — en cours d'acheminement", branche: "cn" },
     { id: 15, name: "Pikachu & Zekrom GX", numero: "166", set: "CSM2aC", langue: "CN", statut: "PSA 9", achat: 183.75, valeur: 183.75, notes: "Poche CN", branche: "cn" },
   ],
-  sealed: [
-    { id: 5, name: "ETB Prismatic Evolutions", numero: "—", set: "Prismatic Evolutions", langue: "EN", statut: "Sealed", achat: 55, valeur: 117, notes: "PC Exclusif à surveiller", branche: "sealed" },
-    { id: 6, name: "ETB Surging Sparks", numero: "—", set: "Surging Sparks", langue: "EN", statut: "Sealed", achat: 55, valeur: 101, notes: "En collection", branche: "sealed" },
-  ],
+  sealed: [],
   swing: [
     { id: 20, name: "Latias GG20", numero: "GG20", set: "Crown Zenith", langue: "FR", statut: "Raw NM", achat: 21.43, valeur: 21.43, notes: "Swing FR", branche: "swing" },
     { id: 21, name: "Mew EX Gold", numero: "205/165", set: "151 (EV3.5)", langue: "FR", statut: "Raw NM", achat: 32.24, valeur: 32.24, notes: "Swing FR", branche: "swing" },
