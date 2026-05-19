@@ -6,16 +6,48 @@ const defaultData = {
   hold: [
     { id: 1, name: "Pikachu & Zekrom GX", numero: "031/095", set: "Tag Bolt", langue: "JP", statut: "PSA 10", achat: 164, valeur: 300, notes: "Illustré par Mitsuhiro Arita", branche: "hold" },
     { id: 2, name: "Gengar & Mimikyu GX SA", numero: "103/095", set: "Tag Bolt", langue: "JP", statut: "AFG 9.5 → PSA en cours", achat: 600, valeur: 1200, notes: "Graal Tag Team — crack + envoi PSA", branche: "hold" },
+    { id: 10, name: "Pikachu & Zekrom GX", numero: "031/095", set: "Tag Bolt JP", langue: "JP", statut: "PSA 10", achat: 161.19, valeur: 161.19, notes: "En transit", branche: "hold" },
+    { id: 11, name: "Reshiram & Charizard GX", numero: "016/173", set: "Tag All Stars", langue: "JP", statut: "PSA 10", achat: 87.69, valeur: 87.69, notes: "En transit", branche: "hold" },
+    { id: 12, name: "Lugia", numero: "249", set: "Neo Genesis Gold Silver to a New World", langue: "JP", statut: "Raw NM", achat: 299.25, valeur: 299.25, notes: "Vintage JP — hold long terme", branche: "hold" },
   ],
   cn: [
     { id: 3, name: "Umbreon V", numero: "152/132", set: "9 Colors Gather", langue: "CN", statut: "CGC Pristine 10", achat: 150, valeur: 150, notes: "Marché CN niche", branche: "cn" },
     { id: 4, name: "Latias & Latios GX", numero: "175/150", set: "CSM2a", langue: "CN", statut: "PSA 10", achat: 700, valeur: 350, notes: "Marché CN — liquidité limitée", branche: "cn" },
+    { id: 13, name: "Noctali (Umbreon)", numero: "06/15", set: "Chinese Gem Pack Vol. 2 CBB2C", langue: "CN", statut: "En transit", achat: 126.50, valeur: 126.50, notes: "Poche CN — en cours d'acheminement", branche: "cn" },
+    { id: 14, name: "Noctali (Umbreon)", numero: "06/15", set: "Chinese Gem Pack Vol. 2 CBB2C", langue: "CN", statut: "En transit", achat: 131.75, valeur: 131.75, notes: "Poche CN — en cours d'acheminement", branche: "cn" },
+    { id: 15, name: "Pikachu & Zekrom GX", numero: "166", set: "CSM2aC", langue: "CN", statut: "PSA 9", achat: 183.75, valeur: 183.75, notes: "Poche CN", branche: "cn" },
   ],
   sealed: [
     { id: 5, name: "ETB Prismatic Evolutions", numero: "—", set: "Prismatic Evolutions", langue: "EN", statut: "Sealed", achat: 55, valeur: 117, notes: "PC Exclusif à surveiller", branche: "sealed" },
     { id: 6, name: "ETB Surging Sparks", numero: "—", set: "Surging Sparks", langue: "EN", statut: "Sealed", achat: 55, valeur: 101, notes: "En collection", branche: "sealed" },
   ],
-  swing: [],
+  swing: [
+    { id: 20, name: "Latias GG20", numero: "GG20", set: "Crown Zenith", langue: "FR", statut: "Raw NM", achat: 21.43, valeur: 21.43, notes: "Swing FR", branche: "swing" },
+    { id: 21, name: "Mew EX Gold", numero: "205/165", set: "151 (EV3.5)", langue: "FR", statut: "Raw NM", achat: 32.24, valeur: 32.24, notes: "Swing FR", branche: "swing" },
+    { id: 22, name: "Dracaufeu VMAX", numero: "261", set: "—", langue: "FR", statut: "PSA ?", achat: 87.69, valeur: 87.69, notes: "Gradé — vérifier numéro exact", branche: "swing" },
+    { id: 23, name: "Pikachu GG30", numero: "GG30", set: "Zénith Suprême", langue: "FR", statut: "PSA 9", achat: 61.44, valeur: 61.44, notes: "Swing FR", branche: "swing" },
+    { id: 24, name: "Ectoplasma (Gengar)", numero: "157/264", set: "—", langue: "FR", statut: "PSA ?", achat: 161.99, valeur: 161.99, notes: "Gradé", branche: "swing" },
+    { id: 25, name: "Sulfura ex Team Rocket", numero: "—", set: "Rivaux Destinés", langue: "FR", statut: "PSA ?", achat: 77.99, valeur: 77.99, notes: "Swing FR", branche: "swing" },
+    { id: 26, name: "Pikachu CRZ 160", numero: "160", set: "Crown Zenith", langue: "FR", statut: "Raw NM", achat: 71.94, valeur: 71.94, notes: "Swing FR", branche: "swing" },
+    { id: 27, name: "Pikachu VMAX TG17", numero: "TG17", set: "Lost Origin", langue: "FR", statut: "Raw NM", achat: 77.19, valeur: 77.19, notes: "Swing FR", branche: "swing" },
+    { id: 28, name: "Pikachu VMAX", numero: "—", set: "—", langue: "FR", statut: "PSA 10", achat: 318.69, valeur: 318.69, notes: "Swing — PSA 10", branche: "swing" },
+    { id: 29, name: "Mew Ryota Murayama", numero: "—", set: "—", langue: "FR", statut: "Raw NM", achat: 66.89, valeur: 66.89, notes: "Swing FR", branche: "swing" },
+    { id: 30, name: "Dracaufeu Alt Art", numero: "234/091", set: "Destinées de Paldea", langue: "FR", statut: "Raw NM", achat: 197.94, valeur: 197.94, notes: "Swing FR", branche: "swing" },
+    { id: 31, name: "Mew Point Fusion", numero: "—", set: "Poing de Fusion", langue: "FR", statut: "Raw NM", achat: 46.49, valeur: 46.49, notes: "Swing FR", branche: "swing" },
+    { id: 32, name: "Reshiram & Charizard GX PSA 10", numero: "—", set: "—", langue: "JP", statut: "Retour initié", achat: 132.25, valeur: 132.25, notes: "⚠️ Retour en cours", branche: "swing" },
+  ],
+  autres: [
+    { id: 40, name: "Son Gohan Childhood", numero: "FB08-106", set: "Dragon Ball Super", langue: "JP", statut: "En transit", achat: 47.75, valeur: 47.75, notes: "DBS — en cours", branche: "autres" },
+    { id: 41, name: "Son Goku Alt Art", numero: "BT13-123", set: "Dragon Ball Super", langue: "JP", statut: "PSA 10", achat: 162.75, valeur: 162.75, notes: "DBS PSA 10 JP", branche: "autres" },
+    { id: 42, name: "Son Goku", numero: "FB01-139", set: "Dragon Ball Super Fusion World", langue: "JP", statut: "En transit", achat: 47.09, valeur: 47.09, notes: "DBS — en cours", branche: "autres" },
+    { id: 43, name: "Enel", numero: "—", set: "One Piece", langue: "JP", statut: "Gradé", achat: 89.25, valeur: 89.25, notes: "One Piece gradé", branche: "autres" },
+    { id: 44, name: "Boa Hancock Alt Art", numero: "OP01-078", set: "One Piece OP01", langue: "JP", statut: "PSA ?", achat: 404.25, valeur: 404.25, notes: "One Piece — alt art", branche: "autres" },
+    { id: 45, name: "Boa Hancock Alt Art", numero: "—", set: "One Piece", langue: "JP", statut: "PSA 10", achat: 141.75, valeur: 141.75, notes: "One Piece PSA 10 JP", branche: "autres" },
+    { id: 46, name: "Boa Hancock SP SR", numero: "OP12-014", set: "One Piece OP12", langue: "JP", statut: "Raw NM", achat: 224.19, valeur: 224.19, notes: "One Piece SP SR", branche: "autres" },
+    { id: 47, name: "Vinsmoke Sanji", numero: "—", set: "One Piece", langue: "JP", statut: "Raw NM", achat: 36.75, valeur: 36.75, notes: "One Piece", branche: "autres" },
+    { id: 48, name: "Boa Hancock SP", numero: "OP07-051", set: "One Piece OP07", langue: "JP", statut: "CGC Pristine 10", achat: 321.14, valeur: 321.14, notes: "⚠️ Problème livraison", branche: "autres" },
+    { id: 49, name: "Tortank Alt Art", numero: "200/165", set: "151 (EV3.5)", langue: "FR", statut: "En transit", achat: 161.08, valeur: 161.08, notes: "En cours d'acheminement", branche: "autres" },
+  ],
 };
 
 function loadData() { try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : defaultData; } catch { return defaultData; } }
@@ -27,13 +59,14 @@ const THEMES = {
   light: { bg: "#f1f5f9", bgGrad: "radial-gradient(ellipse at 20% 0%, rgba(99,102,241,0.06) 0%, transparent 50%)", surface: "#ffffff", surface2: "#f8fafc", border: "rgba(0,0,0,0.07)", border2: "rgba(0,0,0,0.12)", text: "#0f172a", textSub: "#64748b", textMuted: "#94a3b8", modalBg: "#ffffff", inputBg: "#f1f5f9", barBg: "#e2e8f0", navBg: "#ffffff", isDark: false },
 };
 
-const STATUTS = ["Raw NM", "Raw LP", "PSA 10", "PSA 9", "PSA 8", "CGC Pristine 10", "CGC 10", "AFG 9.5 → PSA en cours", "En attente PSA", "Sealed", "Autre"];
-const LANGUES = ["JP", "EN", "FR", "CN", "KR"];
+const STATUTS = ["Raw NM", "Raw LP", "PSA 10", "PSA 9", "PSA 8", "CGC Pristine 10", "CGC 10", "AFG 9.5 → PSA en cours", "En attente PSA", "En transit", "Retour initié", "Sealed", "Autre"];
+const LANGUES = ["JP", "EN", "FR", "CN", "KR", "Autre"];
 const BRANCHES = [
   { id: "hold", label: "Hold JP", icon: "🏆", color: "#f59e0b" },
   { id: "cn", label: "Poche CN", icon: "🀄", color: "#ef4444" },
   { id: "sealed", label: "Sealed", icon: "📦", color: "#60a5fa" },
   { id: "swing", label: "Swing", icon: "📈", color: "#22c55e" },
+  { id: "autres", label: "Autres TCG", icon: "🃏", color: "#a78bfa" },
 ];
 const NAV = [
   { id: "dashboard", icon: "⚡", label: "Accueil" },
@@ -41,6 +74,7 @@ const NAV = [
   { id: "cn", icon: "🀄", label: "CN" },
   { id: "sealed", icon: "📦", label: "Sealed" },
   { id: "swing", icon: "📈", label: "Swing" },
+  { id: "autres", icon: "🃏", label: "Autres" },
 ];
 
 const fmt = (n) => { const v = Math.abs(n ?? 0); if (v >= 1000) return ((n < 0 ? "-" : "") + (v / 1000).toFixed(1).replace(".0", "") + "k€"); return (n ?? 0).toLocaleString("fr-FR") + "€"; };
@@ -171,7 +205,7 @@ function BranchView({ branche, cards, color, onEdit, onDelete, T }) {
 }
 
 function Dashboard({ data, T }) {
-  const all = [...data.hold, ...data.cn, ...data.sealed, ...data.swing];
+  const all = [...data.hold, ...data.cn, ...data.sealed, ...data.swing, ...(data.autres || [])];
   const inv = all.reduce((s, c) => s + c.achat, 0);
   const val = all.reduce((s, c) => s + c.valeur, 0);
   const gain = val - inv;
@@ -249,6 +283,7 @@ export default function App() {
   const [modal, setModal] = useState(null);
   const [mounted, setMounted] = useState(false);
   const [theme, setTheme] = useState(loadTheme);
+  const [showReset, setShowReset] = useState(false);
   const T = THEMES[theme];
 
   useEffect(() => { setMounted(true); }, []);
@@ -261,7 +296,13 @@ export default function App() {
     setModal(null);
   }
 
-  function handleDelete(branche, id) { setData(prev => ({ ...prev, [branche]: prev[branche].filter(c => c.id !== id) })); }
+  function handleDelete(branche, id) { setData(prev => ({ ...prev, [branche]: (prev[branche] || []).filter(c => c.id !== id) })); }
+
+  function handleReset() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    setData(defaultData);
+    setShowReset(false);
+  }
 
   const activeBranche = BRANCHES.find(b => b.id === activeTab);
 
@@ -283,6 +324,9 @@ export default function App() {
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setTheme(t => t === "dark" ? "light" : "dark")} style={{ width: 40, height: 40, borderRadius: 13, background: T.surface, border: `1px solid ${T.border}`, cursor: "pointer", fontSize: 19, display: "flex", alignItems: "center", justifyContent: "center" }}>
               {theme === "dark" ? "☀️" : "🌙"}
+            </button>
+            <button onClick={() => setShowReset(true)} style={{ width: 40, height: 40, borderRadius: 13, background: T.surface, border: `1px solid ${T.border}`, cursor: "pointer", fontSize: 19, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              ⚙️
             </button>
             {activeBranche && (
               <button onClick={() => setModal({ branche: activeTab })} style={{ width: 40, height: 40, borderRadius: 13, background: "linear-gradient(135deg,#f59e0b,#f97316)", border: "none", color: "#000", fontWeight: 900, cursor: "pointer", fontSize: 24, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(245,158,11,0.35)" }}>
@@ -328,6 +372,26 @@ export default function App() {
       </div>
 
       {modal && <Modal branche={modal.branche} card={modal.card} onSave={handleSave} onClose={() => setModal(null)} T={T} />}
+
+      {showReset && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(10px)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 300 }} onClick={() => setShowReset(false)}>
+          <div style={{ background: T.modalBg, borderRadius: "24px 24px 0 0", padding: "20px 20px 44px", width: "100%", maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: 40, height: 4, background: T.border2, borderRadius: 2, margin: "0 auto 20px" }} />
+            <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 6 }}>⚙️ Paramètres</div>
+            <div style={{ fontSize: 13, color: T.textSub, marginBottom: 24 }}>Version 1.0 · PokéVault</div>
+            <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 16, padding: "16px" }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#ef4444", marginBottom: 6 }}>⚠️ Réinitialiser les données</div>
+              <div style={{ fontSize: 13, color: T.textSub, marginBottom: 14 }}>Recharge les données par défaut depuis le code. Toutes tes modifications manuelles seront perdues.</div>
+              <button onClick={handleReset} style={{ width: "100%", padding: "14px", background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 12, color: "#ef4444", cursor: "pointer", fontSize: 15, fontWeight: 700, fontFamily: "inherit" }}>
+                Réinitialiser
+              </button>
+            </div>
+            <button onClick={() => setShowReset(false)} style={{ width: "100%", marginTop: 12, padding: "14px", background: T.surface2, border: "none", borderRadius: 12, color: T.textSub, cursor: "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
