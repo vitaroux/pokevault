@@ -117,6 +117,9 @@ function CardModal({ branche, card, onSave, onClose, T }) {
             <select style={{ ...inp, cursor: "pointer" }} value={form.langue} onChange={e => s("langue", e.target.value)}>{LANGUES.map(l => <option key={l}>{l}</option>)}</select>
             <select style={{ ...inp, cursor: "pointer" }} value={form.statut} onChange={e => s("statut", e.target.value)}>{STATUTS.map(st => <option key={st}>{st}</option>)}</select>
           </div>
+          <select style={{ ...inp, cursor: "pointer" }} value={form.branche} onChange={e => s("branche", e.target.value)}>
+            {BRANCHES.map(b => <option key={b.id} value={b.id}>{b.icon} {b.label}</option>)}
+          </select>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <input style={inp} type="number" placeholder="Prix achat €" value={form.achat} onChange={e => s("achat", e.target.value)} />
             <input style={inp} type="number" placeholder="Valeur actuelle €" value={form.valeur} onChange={e => s("valeur", e.target.value)} />
@@ -246,9 +249,10 @@ function BranchView({ branche, cards, color, onEdit, onDelete, T }) {
 }
 
 // ── LIQUIDITE VIEW ────────────────────────────────────────────────────────────
-function LiquiditeView({ data, onInjecter, T }) {
+function LiquiditeView({ data, onInjecter, onEditInjection, onDeleteInjection, T }) {
   const { totalInjecte, totalAchats, totalVentes, solde } = calcLiquidite(data);
   const [showInject, setShowInject] = useState(false);
+  const [editingInjection, setEditingInjection] = useState(null); // { index, h }
   const [montant, setMontant] = useState("");
   const [label, setLabel] = useState("");
   const historique = (data.liquidite?.historique || []).slice().reverse();
@@ -291,8 +295,16 @@ function LiquiditeView({ data, onInjecter, T }) {
                 <div style={{ fontSize: 13, fontWeight: 600, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{h.label}</div>
                 <div style={{ fontSize: 11, color: T.textSub }}>{h.date}</div>
               </div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: h.type === "achat" ? "#ef4444" : "#22c55e", flexShrink: 0 }}>
-                {h.type === "achat" ? "-" : "+"}{fmt(h.montant)}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: h.type === "achat" ? "#ef4444" : "#22c55e" }}>
+                  {h.type === "achat" ? "-" : "+"}{fmt(h.montant)}
+                </div>
+                {h.type === "injection" && (
+                  <button onClick={() => { setEditingInjection({ index: historique.length - 1 - i, h }); setMontant(String(h.montant)); setLabel(h.label); setShowInject(true); }} style={{ width: 28, height: 28, borderRadius: 8, background: T.surface2, border: `1px solid ${T.border}`, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>✏️</button>
+                )}
+                {h.type === "injection" && (
+                  <button onClick={() => onDeleteInjection(historique.length - 1 - i)} style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>🗑</button>
+                )}
               </div>
             </div>
           ))}
@@ -310,10 +322,18 @@ function LiquiditeView({ data, onInjecter, T }) {
               <input style={inp} placeholder="Label (ex: Virement initial)" value={label} onChange={e => setLabel(e.target.value)} />
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-              <button onClick={() => setShowInject(false)} style={{ flex: 1, padding: "15px", background: T.surface2, border: "none", borderRadius: 14, color: T.textSub, cursor: "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>Annuler</button>
-              <button onClick={() => { if (!montant) return; onInjecter(parseFloat(montant), label || "Injection"); setMontant(""); setLabel(""); setShowInject(false); }}
+              <button onClick={() => { setShowInject(false); setEditingInjection(null); setMontant(""); setLabel(""); }} style={{ flex: 1, padding: "15px", background: T.surface2, border: "none", borderRadius: 14, color: T.textSub, cursor: "pointer", fontSize: 15, fontWeight: 600, fontFamily: "inherit" }}>Annuler</button>
+              <button onClick={() => {
+                if (!montant) return;
+                if (editingInjection !== null) {
+                  onEditInjection(editingInjection.index, parseFloat(montant), label || "Injection");
+                } else {
+                  onInjecter(parseFloat(montant), label || "Injection");
+                }
+                setMontant(""); setLabel(""); setShowInject(false); setEditingInjection(null);
+              }}
                 style={{ flex: 2, padding: "15px", background: montant ? "linear-gradient(135deg,#22c55e,#16a34a)" : T.barBg, border: "none", borderRadius: 14, color: montant ? "#000" : T.textSub, fontWeight: 800, cursor: montant ? "pointer" : "default", fontSize: 15, fontFamily: "inherit" }}>
-                Confirmer
+                {editingInjection !== null ? "Modifier" : "Confirmer"}
               </button>
             </div>
           </div>
@@ -409,23 +429,35 @@ export default function App() {
   useEffect(() => { try { localStorage.setItem(THEME_KEY, theme); } catch {} }, [theme]);
 
   function handleSave(card) {
-    const b = card.branche;
-    const wasVendu = data[b]?.find(c => c.id === card.id)?.vendu;
-    const isNowVendu = card.vendu && card.prixVente;
+    const newBranche = card.branche;
     setData(prev => {
-      const list = prev[b] || [];
-      const exists = list.find(c => c.id === card.id);
-      const newList = exists ? list.map(c => c.id === card.id ? card : c) : [...list, card];
+      // Find the original card in any branch
+      let originalCard = null;
+      let originalBranche = null;
+      for (const b of BRANCHES.map(b => b.id)) {
+        const found = (prev[b] || []).find(c => c.id === card.id);
+        if (found) { originalCard = found; originalBranche = b; break; }
+      }
+      const wasVendu = originalCard?.vendu;
+      const isNowVendu = card.vendu && card.prixVente;
+      let newData = { ...prev };
+      // Remove from old branch if branch changed
+      if (originalCard && originalBranche !== newBranche) {
+        newData[originalBranche] = (prev[originalBranche] || []).filter(c => c.id !== card.id);
+        newData[newBranche] = [...(prev[newBranche] || []), card];
+      } else if (originalCard) {
+        newData[newBranche] = (prev[newBranche] || []).map(c => c.id === card.id ? card : c);
+      } else {
+        newData[newBranche] = [...(prev[newBranche] || []), card];
+      }
       let newLiquidite = { ...prev.liquidite, historique: [...(prev.liquidite?.historique || [])] };
-      // New card bought on liquidite
-      if (!exists && card.surLiquidite) {
+      if (!originalCard && card.surLiquidite) {
         newLiquidite.historique.push({ type: "achat", montant: card.achat, label: `Achat : ${card.name}`, date: dateStr() });
       }
-      // Card just marked as sold
       if (!wasVendu && isNowVendu && card.surLiquidite) {
         newLiquidite.historique.push({ type: "vente", montant: card.prixVente, label: `Vente : ${card.name}`, date: dateStr() });
       }
-      return { ...prev, [b]: newList, liquidite: newLiquidite };
+      return { ...newData, liquidite: newLiquidite };
     });
     setModal(null);
   }
@@ -437,11 +469,24 @@ export default function App() {
   function handleInjecter(montant, label) {
     setData(prev => ({
       ...prev,
-      liquidite: {
-        ...prev.liquidite,
-        historique: [...(prev.liquidite?.historique || []), { type: "injection", montant, label, date: dateStr() }]
-      }
+      liquidite: { ...prev.liquidite, historique: [...(prev.liquidite?.historique || []), { type: "injection", montant, label, date: dateStr() }] }
     }));
+  }
+
+  function handleEditInjection(index, montant, label) {
+    setData(prev => {
+      const hist = [...(prev.liquidite?.historique || [])];
+      hist[index] = { ...hist[index], montant, label };
+      return { ...prev, liquidite: { ...prev.liquidite, historique: hist } };
+    });
+  }
+
+  function handleDeleteInjection(index) {
+    setData(prev => {
+      const hist = [...(prev.liquidite?.historique || [])];
+      hist.splice(index, 1);
+      return { ...prev, liquidite: { ...prev.liquidite, historique: hist } };
+    });
   }
 
   function handleReset() {
@@ -488,7 +533,7 @@ export default function App() {
         {/* CONTENT */}
         <div style={{ padding: "0 16px", opacity: mounted ? 1 : 0, transition: "opacity 0.3s" }}>
           {activeTab === "dashboard" && <Dashboard data={data} T={T} />}
-          {activeTab === "liquidite" && <LiquiditeView data={data} onInjecter={handleInjecter} T={T} />}
+          {activeTab === "liquidite" && <LiquiditeView data={data} onInjecter={handleInjecter} onEditInjection={handleEditInjection} onDeleteInjection={handleDeleteInjection} T={T} />}
           {BRANCHES.map(b => activeTab === b.id && (
             <BranchView key={b.id} branche={b.id} cards={data[b.id] || []} color={b.color} T={T}
               onEdit={card => setModal({ branche: b.id, card })}
