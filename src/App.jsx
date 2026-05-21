@@ -91,7 +91,6 @@ const NAV = [
   { id:"op", icon:"☠️", label:"One Piece" },
   { id:"dbz", icon:"🐉", label:"DBZ" },
   { id:"sealed", icon:"📦", label:"Sealed" },
-  { id:"liquidite", icon:"💰", label:"Liquidité" },
   { id:"vendues", icon:"✅", label:"Vendues" },
 ];
 
