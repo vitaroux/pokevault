@@ -246,7 +246,9 @@ function CardListItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
           <div style={{fontSize:11,color:T.textSub,marginTop:4}}>{card.langue}{card.set&&card.set!=="—"?" · "+card.set:""}</div>
         </div>
         <div style={{textAlign:"right",flexShrink:0}}>
-          <div style={{fontSize:13,color:T.textSub,marginBottom:2}}>{fmt(card.achat)}</div>
+          <div style={{fontSize:10,color:T.textSub,marginBottom:1}}>Achat</div>
+          <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:4}}>{fmt(card.achat)}</div>
+          <div style={{fontSize:10,color:T.textSub,marginBottom:1}}>Actuel</div>
           <div style={{fontSize:14,fontWeight:800,color:up?"#22c55e":"#ef4444"}}>{fmt(card.valeur)}</div>
           <div style={{fontSize:11,color:up?"#22c55e":"#ef4444"}}>{up?"+":""}{gainPct}%</div>
         </div>
