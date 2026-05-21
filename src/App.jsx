@@ -69,7 +69,7 @@ async function fetchPokemonImage(name) {
   } catch { return null; }
 }
 const dateStr = () => new Date().toLocaleDateString("fr-FR");
-const fmt = (n) => { const v=Math.abs(n??0); if(v>=1000) return ((n<0?"-":"")+(v/1000).toFixed(1).replace(".0","")+"k€"); return (n??0).toLocaleString("fr-FR")+"€"; };
+const fmt = (n) => (n??0).toLocaleString("fr-FR",{minimumFractionDigits:0,maximumFractionDigits:2})+"€";
 const pct = (a,b) => a===0?"0.0":((b-a)/a*100).toFixed(1);
 const buildCMUrl = (c) => `https://www.cardmarket.com/fr/Pokemon/Products/Singles?searchString=${encodeURIComponent(c.name+" "+(c.numero||""))}&language=${{JP:"Japanese",EN:"English",FR:"French",CN:"Simplified Chinese",KR:"Korean"}[c.langue]||""}&minCondition=2`;
 const buildEbayUrl = (c) => `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(c.name+" "+(c.numero||"")+" "+(c.langue||""))}&LH_Sold=1&LH_Complete=1`;
