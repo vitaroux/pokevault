@@ -43,6 +43,7 @@ const defaultData = {
     { id: 52, name: "Son Goku", numero: "FB01-139", set: "Fusion World", langue: "JP", statut: "En transit", achat: 47.09, valeur: 47.09, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
     { id: 53, name: "Enel", numero: "—", set: "Dragon Ball Super", langue: "JP", statut: "Gradé", achat: 89.25, valeur: 89.25, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
   ],
+  sealed: [],
   liquidite: { historique: [] },
 };
 
@@ -89,6 +90,7 @@ const NAV = [
   { id:"pokemon", icon:"🎴", label:"Pokémon" },
   { id:"op", icon:"☠️", label:"One Piece" },
   { id:"dbz", icon:"🐉", label:"DBZ" },
+  { id:"sealed", icon:"📦", label:"Sealed" },
   { id:"liquidite", icon:"💰", label:"Liquidité" },
   { id:"vendues", icon:"✅", label:"Vendues" },
 ];
@@ -276,8 +278,16 @@ function CardListItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
 
 // ── TCG VIEW ──────────────────────────────────────────────────────────────────
 function TcgView({ tcg, cards, onEdit, onDelete, T }) {
-  const [viewMode,setViewMode]=useState("grid");
-  const actives=cards.filter(c=>!c.vendu);
+  const [viewMode,setViewMode]=useState("list");
+  const [sort,setSort]=useState("achat-desc");
+  const [showSort,setShowSort]=useState(false);
+  const actives=[...cards.filter(c=>!c.vendu)].sort((a,b)=>{
+    if(sort==="achat-asc") return a.achat-b.achat;
+    if(sort==="achat-desc") return b.achat-a.achat;
+    if(sort==="valeur-asc") return a.valeur-b.valeur;
+    if(sort==="valeur-desc") return b.valeur-a.valeur;
+    return 0;
+  });
   const inv=actives.reduce((s,c)=>s+c.achat,0);
   const val=actives.reduce((s,c)=>s+c.valeur,0);
   const gain=val-inv;
@@ -297,6 +307,21 @@ function TcgView({ tcg, cards, onEdit, onDelete, T }) {
           <span style={{fontSize:18}}>{roi>=0?"📈":"📉"}</span>
           <span style={{fontSize:14,fontWeight:800,color:roi>=0?"#22c55e":"#ef4444"}}>ROI {roi>=0?"+":""}{roi}%</span>
           <span style={{fontSize:12,color:T.textSub,marginLeft:"auto"}}>{actives.length} carte{actives.length>1?"s":""}</span>
+          {/* Sort */}
+          <div style={{position:"relative"}}>
+            <button onClick={()=>setShowSort(s=>!s)} style={{padding:"4px 10px",borderRadius:8,fontSize:12,border:`1px solid ${T.border}`,cursor:"pointer",background:T.surface2,color:T.textSub,fontFamily:"inherit",display:"flex",alignItems:"center",gap:4}}>
+              ⇅ {sort==="achat-asc"?"Achat ↑":sort==="achat-desc"?"Achat ↓":sort==="valeur-asc"?"Actuel ↑":"Actuel ↓"}
+            </button>
+            {showSort&&(
+              <div style={{position:"absolute",right:0,top:36,background:T.modalBg,border:`1px solid ${T.border2}`,borderRadius:12,overflow:"hidden",zIndex:50,minWidth:140,boxShadow:"0 8px 24px rgba(0,0,0,0.3)"}}>
+                {[["achat-desc","Achat ↓"],["achat-asc","Achat ↑"],["valeur-desc","Actuel ↓"],["valeur-asc","Actuel ↑"]].map(([v,l])=>(
+                  <button key={v} onClick={()=>{setSort(v);setShowSort(false);}} style={{display:"block",width:"100%",padding:"12px 14px",textAlign:"left",background:sort===v?tcg.color+"22":"transparent",color:sort===v?tcg.color:T.text,border:"none",cursor:"pointer",fontSize:13,fontWeight:sort===v?700:500,fontFamily:"inherit"}}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {/* Toggle */}
           <div style={{display:"flex",background:T.surface2,borderRadius:8,padding:2,gap:2}}>
             {[["grid","⊞"],["list","☰"]].map(([m,icon])=>(
@@ -450,6 +475,128 @@ function LiquiditeView({ data, onInjecter, onEditInjection, onDeleteInjection, T
   );
 }
 
+
+// ── SEALED VIEW ───────────────────────────────────────────────────────────────
+const SEALED_TYPES = ["ETB", "Display", "Autre"];
+
+function SealedModal({ item, onSave, onClose, T }) {
+  const empty = { name:"", type:"ETB", set:"", langue:"EN", statut:"Sealed", achat:"", valeur:"", qty:1, notes:"" };
+  const [form,setForm] = useState(item?{...item}:empty);
+  const s=(k,v)=>setForm(p=>({...p,[k]:v}));
+  const valid=form.name&&form.achat&&form.valeur;
+  const inp={background:T.inputBg,border:`1px solid ${T.border2}`,borderRadius:12,color:T.text,padding:"14px",fontSize:15,outline:"none",width:"100%",WebkitAppearance:"none",fontFamily:"inherit"};
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:300}} onClick={onClose}>
+      <div style={{background:T.modalBg,borderRadius:"24px 24px 0 0",padding:"20px 20px 44px",width:"100%",maxWidth:500,maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+        <div style={{width:40,height:4,background:T.border2,borderRadius:2,margin:"0 auto 20px"}}/>
+        <div style={{fontSize:18,fontWeight:800,color:T.text,marginBottom:18}}>{item?"Modifier":"Nouveau produit scellé"}</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <input style={inp} placeholder="Nom *" value={form.name} onChange={e=>s("name",e.target.value)}/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <select style={{...inp,cursor:"pointer"}} value={form.type} onChange={e=>s("type",e.target.value)}>{SEALED_TYPES.map(t=><option key={t}>{t}</option>)}</select>
+            <input style={inp} placeholder="Set" value={form.set} onChange={e=>s("set",e.target.value)}/>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <select style={{...inp,cursor:"pointer"}} value={form.langue} onChange={e=>s("langue",e.target.value)}>{LANGUES.map(l=><option key={l}>{l}</option>)}</select>
+            <input style={inp} type="number" placeholder="Quantité" value={form.qty} onChange={e=>s("qty",e.target.value)}/>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <input style={inp} type="number" placeholder="Prix achat € (unitaire)" value={form.achat} onChange={e=>s("achat",e.target.value)}/>
+            <input style={inp} type="number" placeholder="Valeur actuelle € (unitaire)" value={form.valeur} onChange={e=>s("valeur",e.target.value)}/>
+          </div>
+          <input style={inp} placeholder="Notes..." value={form.notes} onChange={e=>s("notes",e.target.value)}/>
+        </div>
+        <div style={{display:"flex",gap:10,marginTop:18}}>
+          <button onClick={onClose} style={{flex:1,padding:"15px",background:T.surface2,border:"none",borderRadius:14,color:T.textSub,cursor:"pointer",fontSize:15,fontWeight:600,fontFamily:"inherit"}}>Annuler</button>
+          <button onClick={()=>valid&&onSave({...form,id:item?.id||Date.now(),achat:parseFloat(form.achat),valeur:parseFloat(form.valeur),qty:parseInt(form.qty)||1})}
+            style={{flex:2,padding:"15px",background:valid?"linear-gradient(135deg,#60a5fa,#6366f1)":T.barBg,border:"none",borderRadius:14,color:valid?"#fff":T.textSub,fontWeight:800,cursor:valid?"pointer":"default",fontSize:15,fontFamily:"inherit"}}>
+            {item?"Sauvegarder":"Ajouter"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SealedView({ items, onAdd, onEdit, onDelete, T }) {
+  const [showModal,setShowModal]=useState(false);
+  const [editItem,setEditItem]=useState(null);
+  useEffect(()=>{const h=()=>{setEditItem(null);setShowModal(true);};document.addEventListener("sealed-add",h);return()=>document.removeEventListener("sealed-add",h);},[]);
+  const totalInvesti=items.reduce((s,i)=>s+i.achat*i.qty,0);
+  const totalValeur=items.reduce((s,i)=>s+i.valeur*i.qty,0);
+  const gain=totalValeur-totalInvesti;
+  const roi=parseFloat(pct(totalInvesti,totalValeur));
+  const grouped={ETB:[],Display:[],Autre:[]};
+  items.forEach(i=>{ if(grouped[i.type]) grouped[i.type].push(i); else grouped["Autre"].push(i); });
+  return (
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
+        {[["Investi",fmt(totalInvesti),"#60a5fa"],["Valeur",fmt(totalValeur),T.text],["P&L",(gain>=0?"+":"")+fmt(gain),gain>=0?"#22c55e":"#ef4444"]].map(([k,v,c])=>(
+          <div key={k} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:14,padding:"12px 10px",textAlign:"center"}}>
+            <div style={{fontSize:10,color:T.textSub,textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>{k}</div>
+            <div style={{fontSize:15,fontWeight:800,color:c}}>{v}</div>
+          </div>
+        ))}
+      </div>
+      {totalInvesti>0&&(
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18,padding:"10px 14px",background:T.surface,borderRadius:12,border:`1px solid ${T.border}`}}>
+          <span style={{fontSize:18}}>{roi>=0?"📈":"📉"}</span>
+          <span style={{fontSize:14,fontWeight:800,color:roi>=0?"#22c55e":"#ef4444"}}>ROI {roi>=0?"+":""}{roi}%</span>
+          <span style={{fontSize:12,color:T.textSub,marginLeft:"auto"}}>{items.length} produit{items.length>1?"s":""}</span>
+        </div>
+      )}
+      {items.length===0?(
+        <div style={{textAlign:"center",padding:"60px 20px",color:T.textSub}}>
+          <div style={{fontSize:44,marginBottom:14}}>📦</div>
+          <div style={{fontSize:17,fontWeight:700,color:T.text,marginBottom:6}}>Aucun produit scellé</div>
+          <div style={{fontSize:14}}>Appuie sur + pour en ajouter</div>
+        </div>
+      ):SEALED_TYPES.map(type=>{
+        const group=grouped[type]||[];
+        if(group.length===0) return null;
+        return (
+          <div key={type} style={{marginBottom:24}}>
+            <div style={{fontSize:13,fontWeight:800,color:"#60a5fa",marginBottom:10}}>📦 {type}</div>
+            {group.map(item=>{
+              const g=(item.valeur-item.achat)*item.qty;
+              const gPct=parseFloat(pct(item.achat,item.valeur));
+              const up=g>=0;
+              return (
+                <div key={item.id} style={{marginBottom:10,borderRadius:16,overflow:"hidden",border:`1px solid ${T.border}`,background:T.surface}}>
+                  <div style={{padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{width:4,height:52,borderRadius:2,background:up?"#22c55e":"#ef4444",flexShrink:0}}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:15,fontWeight:700,color:T.text,marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.name}</div>
+                      <div style={{fontSize:11,color:T.textSub,marginBottom:6}}>{item.set&&item.set!=="—"?item.set+" · ":""}{item.langue} · x{item.qty}</div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
+                        {[["Achat/u",fmt(item.achat),"#60a5fa"],["Actuel/u",fmt(item.valeur),T.text],["P&L total",(g>=0?"+":"")+fmt(g),up?"#22c55e":"#ef4444"]].map(([k,v,c])=>(
+                          <div key={k} style={{background:T.surface2,borderRadius:8,padding:"6px 8px",textAlign:"center"}}>
+                            <div style={{fontSize:9,color:T.textSub,textTransform:"uppercase",marginBottom:2}}>{k}</div>
+                            <div style={{fontSize:12,fontWeight:700,color:c}}>{v}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <div style={{fontSize:18,fontWeight:900,color:up?"#22c55e":"#ef4444"}}>{up?"+":""}{gPct}%</div>
+                      <div style={{display:"flex",gap:6,marginTop:8}}>
+                        <button onClick={()=>{setEditItem(item);setShowModal(true);}} style={{width:32,height:32,borderRadius:8,background:T.surface2,border:`1px solid ${T.border}`,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
+                        <button onClick={()=>onDelete(item.id)} style={{width:32,height:32,borderRadius:8,background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:"#ef4444"}}>🗑</button>
+                      </div>
+                    </div>
+                  </div>
+                  {item.notes&&<div style={{fontSize:12,color:T.textSub,padding:"0 16px 12px",fontStyle:"italic"}}>{item.notes}</div>}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+      {showModal&&<SealedModal item={editItem} onSave={item=>{onEdit?onEdit(item):onAdd(item);setShowModal(false);setEditItem(null);}} onClose={()=>{setShowModal(false);setEditItem(null);}} T={T}/>}
+    </div>
+  );
+}
+
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function Dashboard({ data, T }) {
   const allCards=TCGS.flatMap(t=>(data[t.id]||[]).filter(c=>!c.vendu));
@@ -473,9 +620,7 @@ function Dashboard({ data, T }) {
           <div style={{display:"inline-flex",alignItems:"center",padding:"6px 14px",borderRadius:20,background:(roi>=0?"rgba(34,197,94,":"rgba(239,68,68,")+"0.15)",border:`1px solid ${(roi>=0?"rgba(34,197,94,":"rgba(239,68,68,")+"0.3)"}`}}>
             <span style={{fontSize:14,fontWeight:800,color:roi>=0?"#22c55e":"#ef4444"}}>ROI {roi>=0?"+":""}{roi}%</span>
           </div>
-          {nbVendues>0&&<div style={{display:"inline-flex",alignItems:"center",padding:"6px 14px",borderRadius:20,background:"rgba(99,102,241,0.15)",border:"1px solid rgba(99,102,241,0.3)"}}>
-            <span style={{fontSize:14,fontWeight:800,color:"#818cf8"}}>✅ {nbVendues} vendue{nbVendues>1?"s":""}</span>
-          </div>}
+
         </div>
       </div>
       <div style={{fontSize:12,color:T.textSub,textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:12}}>Par TCG</div>
@@ -495,6 +640,12 @@ function Dashboard({ data, T }) {
           );
         })}
       </div>
+      <div style={{fontSize:12,color:T.textSub,textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:12}}>Scellé</div>
+      {(()=>{const si=data.sealed||[];const inv=si.reduce((s,i)=>s+i.achat*i.qty,0);const val=si.reduce((s,i)=>s+i.valeur*i.qty,0);const g=val-inv;return si.length>0?(<div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:18,padding:"14px 16px",marginBottom:20,display:"flex",alignItems:"center",gap:16}}>
+        <span style={{fontSize:28}}>📦</span>
+        <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700,color:T.text,marginBottom:4}}>{si.length} produit{si.length>1?"s":""}</div><div style={{fontSize:12,color:T.textSub}}>Investi : {fmt(inv)}</div></div>
+        <div style={{textAlign:"right"}}><div style={{fontSize:16,fontWeight:800,color:T.text}}>{fmt(val)}</div><div style={{fontSize:12,color:g>=0?"#22c55e":"#ef4444"}}>{g>=0?"+":""}{fmt(g)}</div></div>
+      </div>):null})()}
       <div style={{fontSize:12,color:T.textSub,textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:12}}>Liquidité</div>
       <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:18,padding:"18px 16px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
@@ -547,6 +698,8 @@ export default function App() {
   }
 
   function handleDelete(tcg,id){setData(prev=>({...prev,[tcg]:(prev[tcg]||[]).filter(c=>c.id!==id)}));}
+  function handleSealedSave(item){setData(prev=>{const list=prev.sealed||[];const exists=list.find(i=>i.id===item.id);return{...prev,sealed:exists?list.map(i=>i.id===item.id?item:i):[...list,item]};});}
+  function handleSealedDelete(id){setData(prev=>({...prev,sealed:(prev.sealed||[]).filter(i=>i.id!==id)}));}
   function handleRestaurer(tcg,id){setData(prev=>({...prev,[tcg]:(prev[tcg]||[]).map(c=>c.id===id?{...c,vendu:false,prixVente:null}:c)}));}
   function handleInjecter(m,l){setData(prev=>({...prev,liquidite:{...prev.liquidite,historique:[...(prev.liquidite?.historique||[]),{type:"injection",montant:m,label:l,date:dateStr()}]}}));}
   function handleEditInjection(idx,m,l){setData(prev=>{const h=[...(prev.liquidite?.historique||[])];h[idx]={...h[idx],montant:m,label:l};return{...prev,liquidite:{...prev.liquidite,historique:h}};});}
@@ -573,17 +726,19 @@ export default function App() {
             <button onClick={()=>setTheme(t=>t==="dark"?"light":"dark")} style={{width:40,height:40,borderRadius:13,background:T.surface,border:`1px solid ${T.border}`,cursor:"pointer",fontSize:19,display:"flex",alignItems:"center",justifyContent:"center"}}>{theme==="dark"?"☀️":"🌙"}</button>
             <button onClick={()=>setShowReset(true)} style={{width:40,height:40,borderRadius:13,background:T.surface,border:`1px solid ${T.border}`,cursor:"pointer",fontSize:19,display:"flex",alignItems:"center",justifyContent:"center"}}>⚙️</button>
             {activeTcg&&<button onClick={()=>setModal({tcg:activeTab})} style={{width:40,height:40,borderRadius:13,background:"linear-gradient(135deg,#f59e0b,#f97316)",border:"none",color:"#000",fontWeight:900,cursor:"pointer",fontSize:24,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(245,158,11,0.35)"}}>+</button>}
+            {activeTab==="sealed"&&<button onClick={()=>document.dispatchEvent(new CustomEvent("sealed-add"))} style={{width:40,height:40,borderRadius:13,background:"linear-gradient(135deg,#60a5fa,#6366f1)",border:"none",color:"#fff",fontWeight:900,cursor:"pointer",fontSize:24,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(99,102,241,0.35)"}}>+</button>}
           </div>
         </div>
         <div style={{padding:"8px 20px 20px"}}>
           <div style={{fontSize:28,fontWeight:900,letterSpacing:"-0.5px"}}>
-            {activeTab==="dashboard"?"Vue d'ensemble":activeTab==="liquidite"?"💰 Liquidité":activeTab==="vendues"?"✅ Cartes vendues":activeTcg?.icon+" "+activeTcg?.label}
+            {activeTab==="dashboard"?"Vue d'ensemble":activeTab==="liquidite"?"💰 Liquidité":activeTab==="vendues"?"✅ Cartes vendues":activeTab==="sealed"?"📦 Produits scellés":activeTcg?.icon+" "+activeTcg?.label}
           </div>
         </div>
         <div style={{padding:"0 16px",opacity:mounted?1:0,transition:"opacity 0.3s"}}>
           {activeTab==="dashboard"&&<Dashboard data={data} T={T}/>}
           {activeTcg&&<TcgView tcg={activeTcg} cards={data[activeTab]||[]} onEdit={card=>setModal({tcg:activeTab,card})} onDelete={handleDelete} T={T}/>}
           {activeTab==="liquidite"&&<LiquiditeView data={data} onInjecter={handleInjecter} onEditInjection={handleEditInjection} onDeleteInjection={handleDeleteInjection} T={T}/>}
+          {activeTab==="sealed"&&<SealedView items={data.sealed||[]} onAdd={handleSealedSave} onEdit={handleSealedSave} onDelete={handleSealedDelete} T={T}/>}
           {activeTab==="vendues"&&<VenduesView data={data} onRestaurer={handleRestaurer} T={T}/>}
         </div>
       </div>
