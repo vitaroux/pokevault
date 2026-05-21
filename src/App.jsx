@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const STORAGE_KEY = "pokevault-v4";
+const STORAGE_KEY = "pokevault-v5";
 const THEME_KEY = "pokevault-theme";
 const IMG_KEY = "pokevault-images";
 
@@ -46,7 +46,6 @@ const defaultData = {
   liquidite: { historique: [] },
 };
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
 function calcLiquidite(data) {
   const all = [...(data.pokemon||[]), ...(data.op||[]), ...(data.dbz||[])];
   const totalInjecte = (data.liquidite?.historique||[]).filter(h=>h.type==="injection").reduce((s,h)=>s+h.montant,0);
@@ -62,24 +61,22 @@ function saveImage(id,b64) { try { const i=loadImages(); i[id]=b64; localStorage
 function deleteImage(id) { try { const i=loadImages(); delete i[id]; localStorage.setItem(IMG_KEY,JSON.stringify(i)); } catch {} }
 async function fetchPokemonImage(name) {
   try {
-    const clean = name.toLowerCase().replace(/&/g," ").replace(/gx|ex|vmax|vstar|\bv\b/gi,"").replace(/tag team/gi,"").replace(/sa|sr|rr|hr/gi,"").replace(/psa.*|cgc.*|afg.*/gi,"").replace(/\s+/g," ").trim().split(" ")[0];
-    const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:${encodeURIComponent(clean)}&pageSize=1&orderBy=-set.releaseDate`);
-    const d = await res.json();
-    return d.data?.[0]?.images?.large || d.data?.[0]?.images?.small || null;
+    const clean=name.toLowerCase().replace(/&/g," ").replace(/gx|ex|vmax|vstar|\bv\b/gi,"").replace(/tag team/gi,"").replace(/sa|sr|rr|hr/gi,"").replace(/psa.*|cgc.*|afg.*/gi,"").replace(/\s+/g," ").trim().split(" ")[0];
+    const res=await fetch(`https://api.pokemontcg.io/v2/cards?q=name:${encodeURIComponent(clean)}&pageSize=1&orderBy=-set.releaseDate`);
+    const d=await res.json();
+    return d.data?.[0]?.images?.large||d.data?.[0]?.images?.small||null;
   } catch { return null; }
 }
 const dateStr = () => new Date().toLocaleDateString("fr-FR");
-const fmt = (n) => (n??0).toLocaleString("fr-FR",{minimumFractionDigits:0,maximumFractionDigits:2})+"€";
+const fmt = (n) => (n??0).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+"€";
 const pct = (a,b) => a===0?"0.0":((b-a)/a*100).toFixed(1);
 const buildCMUrl = (c) => `https://www.cardmarket.com/fr/Pokemon/Products/Singles?searchString=${encodeURIComponent(c.name+" "+(c.numero||""))}&language=${{JP:"Japanese",EN:"English",FR:"French",CN:"Simplified Chinese",KR:"Korean"}[c.langue]||""}&minCondition=2`;
 const buildEbayUrl = (c) => `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(c.name+" "+(c.numero||"")+" "+(c.langue||""))}&LH_Sold=1&LH_Complete=1`;
 
-// ── THEME ─────────────────────────────────────────────────────────────────────
 const THEMES = {
   dark: { bg:"#07090f", bgGrad:"radial-gradient(ellipse at 20% 0%, rgba(99,102,241,0.12) 0%, transparent 50%)", surface:"#111827", surface2:"#1a2235", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.12)", text:"#f1f5f9", textSub:"#64748b", modalBg:"#0d1117", inputBg:"#1a2235", barBg:"#1e293b", navBg:"#0d1117" },
   light: { bg:"#f1f5f9", bgGrad:"radial-gradient(ellipse at 20% 0%, rgba(99,102,241,0.06) 0%, transparent 50%)", surface:"#ffffff", surface2:"#f8fafc", border:"rgba(0,0,0,0.07)", border2:"rgba(0,0,0,0.12)", text:"#0f172a", textSub:"#64748b", modalBg:"#ffffff", inputBg:"#f1f5f9", barBg:"#e2e8f0", navBg:"#ffffff" },
 };
-
 const STATUTS = ["Raw NM","Raw LP","PSA 10","PSA 9","PSA 8","CGC Pristine 10","CGC 10","AFG 9.5 → PSA en cours","En attente PSA","En transit","Retour initié","Sealed","Gradé","Autre"];
 const LANGUES = ["JP","EN","FR","CN","KR","Autre"];
 const TCGS = [
@@ -93,46 +90,33 @@ const NAV = [
   { id:"op", icon:"☠️", label:"One Piece" },
   { id:"dbz", icon:"🐉", label:"DBZ" },
   { id:"liquidite", icon:"💰", label:"Liquidité" },
+  { id:"vendues", icon:"✅", label:"Vendues" },
 ];
 
 // ── CARD IMAGE ────────────────────────────────────────────────────────────────
-function CardImage({ card, tcg, T }) {
-  const [customImg, setCustomImg] = useState(()=>loadImages()[card.id]||null);
-  const [autoImg, setAutoImg] = useState(null);
-  const [loading, setLoading] = useState(false);
-
+function CardImage({ card, tcg, T, style }) {
+  const [customImg,setCustomImg] = useState(()=>loadImages()[card.id]||null);
+  const [autoImg,setAutoImg] = useState(null);
+  const [loading,setLoading] = useState(false);
   useEffect(()=>{
-    if(!customImg && tcg==="pokemon") {
+    if(!customImg&&tcg==="pokemon"){
       setLoading(true);
-      fetchPokemonImage(card.name).then(url=>{ setAutoImg(url); setLoading(false); });
+      fetchPokemonImage(card.name).then(url=>{setAutoImg(url);setLoading(false);});
     }
   },[card.id]);
-
-  const displayed = customImg||autoImg;
-
-  function handleUpload(e) {
-    const file=e.target.files?.[0]; if(!file) return;
-    const reader=new FileReader();
-    reader.onload=ev=>{ saveImage(card.id,ev.target.result); setCustomImg(ev.target.result); };
-    reader.readAsDataURL(file);
-  }
-  function handleReset(e) { e.stopPropagation(); deleteImage(card.id); setCustomImg(null); }
-
+  const displayed=customImg||autoImg;
+  function handleUpload(e){const file=e.target.files?.[0];if(!file)return;const r=new FileReader();r.onload=ev=>{saveImage(card.id,ev.target.result);setCustomImg(ev.target.result);};r.readAsDataURL(file);}
+  function handleReset(e){e.stopPropagation();deleteImage(card.id);setCustomImg(null);}
   return (
-    <div style={{marginBottom:14,position:"relative",borderRadius:14,overflow:"hidden",background:T.surface2,height:180,display:"flex",alignItems:"center",justifyContent:"center"}}>
-      {loading&&<div style={{color:T.textSub,fontSize:13}}>Chargement...</div>}
+    <div style={{position:"relative",borderRadius:12,overflow:"hidden",background:T.surface2,display:"flex",alignItems:"center",justifyContent:"center",...style}}>
+      {loading&&<div style={{color:T.textSub,fontSize:11}}>...</div>}
       {!loading&&displayed&&<img src={displayed} alt={card.name} style={{width:"100%",height:"100%",objectFit:"contain"}} onError={()=>setAutoImg(null)}/>}
-      {!loading&&!displayed&&(
-        <div style={{textAlign:"center",color:T.textSub}}>
-          <div style={{fontSize:40,marginBottom:6}}>🃏</div>
-          <div style={{fontSize:12}}>Aucune image</div>
-        </div>
-      )}
-      <div style={{position:"absolute",bottom:8,right:8,display:"flex",gap:6}}>
-        <label style={{width:32,height:32,borderRadius:8,background:"rgba(0,0,0,0.55)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:15}}>
+      {!loading&&!displayed&&<div style={{textAlign:"center",color:T.textSub,fontSize:20}}>🃏</div>}
+      <div style={{position:"absolute",bottom:4,right:4,display:"flex",gap:4}}>
+        <label style={{width:24,height:24,borderRadius:6,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12}}>
           📷<input type="file" accept="image/*" style={{display:"none"}} onChange={handleUpload}/>
         </label>
-        {customImg&&<button onClick={handleReset} style={{width:32,height:32,borderRadius:8,background:"rgba(239,68,68,0.6)",backdropFilter:"blur(4px)",border:"none",color:"#fff",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
+        {customImg&&<button onClick={handleReset} style={{width:24,height:24,borderRadius:6,background:"rgba(239,68,68,0.7)",border:"none",color:"#fff",cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
       </div>
     </div>
   );
@@ -140,8 +124,8 @@ function CardImage({ card, tcg, T }) {
 
 // ── CARD MODAL ────────────────────────────────────────────────────────────────
 function CardModal({ tcg, card, onSave, onClose, T }) {
-  const empty = { name:"",numero:"",set:"",langue:"JP",statut:"Raw NM",achat:"",valeur:"",surLiquidite:true,vendu:false,prixVente:"",notes:"" };
-  const [form,setForm] = useState(card?{...card,prixVente:card.prixVente||""}:empty);
+  const empty={name:"",numero:"",set:"",langue:"JP",statut:"Raw NM",achat:"",valeur:"",surLiquidite:true,vendu:false,prixVente:"",notes:""};
+  const [form,setForm]=useState(card?{...card,prixVente:card.prixVente||""}:empty);
   const s=(k,v)=>setForm(p=>({...p,[k]:v}));
   const valid=form.name&&form.achat&&form.valeur;
   const inp={background:T.inputBg,border:`1px solid ${T.border2}`,borderRadius:12,color:T.text,padding:"14px",fontSize:15,outline:"none",width:"100%",WebkitAppearance:"none",fontFamily:"inherit"};
@@ -151,7 +135,7 @@ function CardModal({ tcg, card, onSave, onClose, T }) {
         <div style={{width:40,height:4,background:T.border2,borderRadius:2,margin:"0 auto 20px"}}/>
         <div style={{fontSize:18,fontWeight:800,color:T.text,marginBottom:18}}>{card?"Modifier":"Nouvelle carte"}</div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <input style={inp} placeholder="Nom de la carte *" value={form.name} onChange={e=>s("name",e.target.value)}/>
+          <input style={inp} placeholder="Nom *" value={form.name} onChange={e=>s("name",e.target.value)}/>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <input style={inp} placeholder="Numéro" value={form.numero} onChange={e=>s("numero",e.target.value)}/>
             <input style={inp} placeholder="Set" value={form.set} onChange={e=>s("set",e.target.value)}/>
@@ -165,12 +149,12 @@ function CardModal({ tcg, card, onSave, onClose, T }) {
             <input style={inp} type="number" placeholder="Valeur actuelle €" value={form.valeur} onChange={e=>s("valeur",e.target.value)}/>
           </div>
           <div onClick={()=>s("surLiquidite",!form.surLiquidite)} style={{display:"flex",alignItems:"center",gap:12,padding:"14px",background:form.surLiquidite?"rgba(34,197,94,0.08)":T.surface2,border:`1px solid ${form.surLiquidite?"rgba(34,197,94,0.3)":T.border}`,borderRadius:12,cursor:"pointer"}}>
-            <div style={{width:24,height:24,borderRadius:6,background:form.surLiquidite?"#22c55e":T.barBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,color:"#000"}}>{form.surLiquidite?"✓":""}</div>
+            <div style={{width:24,height:24,borderRadius:6,background:form.surLiquidite?"#22c55e":T.barBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:"#000",flexShrink:0}}>{form.surLiquidite?"✓":""}</div>
             <div><div style={{fontSize:14,fontWeight:600,color:T.text}}>Achat sur liquidité</div><div style={{fontSize:11,color:T.textSub}}>Déduit du solde</div></div>
           </div>
           <div onClick={()=>s("vendu",!form.vendu)} style={{display:"flex",alignItems:"center",gap:12,padding:"14px",background:form.vendu?"rgba(99,102,241,0.08)":T.surface2,border:`1px solid ${form.vendu?"rgba(99,102,241,0.3)":T.border}`,borderRadius:12,cursor:"pointer"}}>
-            <div style={{width:24,height:24,borderRadius:6,background:form.vendu?"#6366f1":T.barBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,color:"#fff"}}>{form.vendu?"✓":""}</div>
-            <div><div style={{fontSize:14,fontWeight:600,color:T.text}}>Carte vendue</div><div style={{fontSize:11,color:T.textSub}}>Re-crédite la liquidité</div></div>
+            <div style={{width:24,height:24,borderRadius:6,background:form.vendu?"#6366f1":T.barBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:"#fff",flexShrink:0}}>{form.vendu?"✓":""}</div>
+            <div><div style={{fontSize:14,fontWeight:600,color:T.text}}>Carte vendue</div><div style={{fontSize:11,color:T.textSub}}>Bascule dans l'onglet Vendues</div></div>
           </div>
           {form.vendu&&<input style={inp} type="number" placeholder="Prix de vente €" value={form.prixVente} onChange={e=>s("prixVente",e.target.value)}/>}
           <input style={inp} placeholder="Notes..." value={form.notes} onChange={e=>s("notes",e.target.value)}/>
@@ -187,52 +171,98 @@ function CardModal({ tcg, card, onSave, onClose, T }) {
   );
 }
 
-// ── CARD ITEM ─────────────────────────────────────────────────────────────────
-function CardItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
-  const [open,setOpen] = useState(false);
-  const sellPrice = card.vendu&&card.prixVente?card.prixVente:card.valeur;
-  const gain = sellPrice-card.achat;
-  const gainPct = parseFloat(pct(card.achat,sellPrice));
-  const up = gain>=0;
-  const sc = card.statut.includes("PSA 10")||card.statut.includes("Pristine")?"#22c55e":card.statut.includes("PSA 9")||card.statut.includes("AFG")?"#f59e0b":card.statut.includes("transit")||card.statut.includes("Retour")?"#f97316":"#94a3b8";
+// ── CARD GRID ITEM ────────────────────────────────────────────────────────────
+function CardGridItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
+  const [open,setOpen]=useState(false);
+  const gain=card.valeur-card.achat;
+  const gainPct=parseFloat(pct(card.achat,card.valeur));
+  const up=gain>=0;
+  const sc=card.statut.includes("PSA 10")||card.statut.includes("Pristine")?"#22c55e":card.statut.includes("PSA 9")||card.statut.includes("AFG")?"#f59e0b":card.statut.includes("transit")||card.statut.includes("Retour")?"#f97316":"#94a3b8";
   return (
-    <div style={{marginBottom:10,borderRadius:18,overflow:"hidden",border:`1px solid ${card.vendu?"rgba(99,102,241,0.3)":open?tcgColor+"44":T.border}`,background:card.vendu?"rgba(99,102,241,0.04)":T.surface}}>
-      <div onClick={()=>setOpen(!open)} style={{padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
-        <div style={{width:4,height:46,borderRadius:2,background:card.vendu?"#6366f1":up?"#22c55e":"#ef4444",flexShrink:0}}/>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
-            <div style={{fontSize:15,fontWeight:700,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{card.name}</div>
-            {card.vendu&&<span style={{fontSize:10,padding:"1px 6px",borderRadius:4,background:"rgba(99,102,241,0.2)",color:"#818cf8",fontWeight:700,flexShrink:0}}>VENDU</span>}
+    <div style={{borderRadius:16,overflow:"hidden",background:T.surface,border:`1px solid ${T.border}`,position:"relative"}}>
+      <div onClick={()=>setOpen(!open)} style={{cursor:"pointer"}}>
+        <CardImage card={card} tcg={tcg} T={T} style={{height:160,borderRadius:0}}/>
+        <div style={{padding:"10px 10px 12px"}}>
+          <div style={{fontSize:12,fontWeight:700,color:T.text,marginBottom:6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{card.name}</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+            <span style={{fontSize:10,color:T.textSub}}>Achat</span>
+            <span style={{fontSize:12,fontWeight:700,color:T.text}}>{fmt(card.achat)}</span>
           </div>
-          <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-            <span style={{fontSize:11,padding:"2px 7px",borderRadius:6,background:sc+"20",color:sc,fontWeight:700,border:`1px solid ${sc}30`,flexShrink:0}}>{card.statut}</span>
-            <span style={{fontSize:11,color:T.textSub}}>{card.langue}{card.set&&card.set!=="—"?" · "+card.set:""}</span>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <span style={{fontSize:10,color:T.textSub}}>Actuel</span>
+            <span style={{fontSize:12,fontWeight:700,color:up?"#22c55e":"#ef4444"}}>{fmt(card.valeur)}</span>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:sc+"20",color:sc,fontWeight:700,border:`1px solid ${sc}30`}}>{card.statut}</span>
+            <span style={{fontSize:12,fontWeight:800,color:up?"#22c55e":"#ef4444"}}>{up?"+":""}{gainPct}%</span>
           </div>
         </div>
+      </div>
+      {open&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:200}} onClick={()=>setOpen(false)}>
+          <div style={{background:T.modalBg,borderRadius:"24px 24px 0 0",padding:"20px 20px 44px",width:"100%",maxWidth:500}} onClick={e=>e.stopPropagation()}>
+            <div style={{width:40,height:4,background:T.border2,borderRadius:2,margin:"0 auto 16px"}}/>
+            <div style={{fontSize:16,fontWeight:800,color:T.text,marginBottom:14}}>{card.name}</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
+              {[["Achat",fmt(card.achat),"#60a5fa"],["Actuel",fmt(card.valeur),up?"#22c55e":"#ef4444"],["P&L",(gain>=0?"+":"")+fmt(gain),up?"#22c55e":"#ef4444"]].map(([k,v,c])=>(
+                <div key={k} style={{background:T.surface2,borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                  <div style={{fontSize:9,color:T.textSub,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:3}}>{k}</div>
+                  <div style={{fontSize:13,fontWeight:800,color:c}}>{v}</div>
+                </div>
+              ))}
+            </div>
+            {card.notes&&<div style={{fontSize:13,color:T.textSub,marginBottom:12,padding:"10px 12px",background:T.surface2,borderRadius:10,fontStyle:"italic"}}>{card.notes}</div>}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+              <a href={buildCMUrl(card)} target="_blank" rel="noopener noreferrer" style={{padding:"11px",background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:12,color:"#60a5fa",fontSize:12,textDecoration:"none",fontWeight:600,textAlign:"center",display:"block"}}>📊 Cardmarket</a>
+              <a href={buildEbayUrl(card)} target="_blank" rel="noopener noreferrer" style={{padding:"11px",background:"rgba(234,179,8,0.1)",border:"1px solid rgba(234,179,8,0.2)",borderRadius:12,color:"#eab308",fontSize:12,textDecoration:"none",fontWeight:600,textAlign:"center",display:"block"}}>🔍 eBay vendus</a>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <button onClick={()=>{setOpen(false);onEdit(card);}} style={{padding:"12px",background:T.surface2,border:`1px solid ${T.border}`,borderRadius:12,color:T.textSub,cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>✏️ Modifier</button>
+              <button onClick={()=>{setOpen(false);onDelete(tcg,card.id);}} style={{padding:"12px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:12,color:"#ef4444",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>🗑 Supprimer</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── CARD LIST ITEM ────────────────────────────────────────────────────────────
+function CardListItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
+  const [open,setOpen]=useState(false);
+  const gain=card.valeur-card.achat;
+  const gainPct=parseFloat(pct(card.achat,card.valeur));
+  const up=gain>=0;
+  const sc=card.statut.includes("PSA 10")||card.statut.includes("Pristine")?"#22c55e":card.statut.includes("PSA 9")||card.statut.includes("AFG")?"#f59e0b":card.statut.includes("transit")||card.statut.includes("Retour")?"#f97316":"#94a3b8";
+  return (
+    <div style={{marginBottom:10,borderRadius:18,overflow:"hidden",border:`1px solid ${open?tcgColor+"44":T.border}`,background:T.surface}}>
+      <div onClick={()=>setOpen(!open)} style={{padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+        <CardImage card={card} tcg={tcg} T={T} style={{width:48,height:64,borderRadius:8,flexShrink:0}}/>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{card.name}</div>
+          <span style={{fontSize:11,padding:"2px 7px",borderRadius:6,background:sc+"20",color:sc,fontWeight:700,border:`1px solid ${sc}30`}}>{card.statut}</span>
+          <div style={{fontSize:11,color:T.textSub,marginTop:4}}>{card.langue}{card.set&&card.set!=="—"?" · "+card.set:""}</div>
+        </div>
         <div style={{textAlign:"right",flexShrink:0}}>
-          <div style={{fontSize:19,fontWeight:900,color:card.vendu?"#818cf8":up?"#22c55e":"#ef4444",letterSpacing:"-0.5px"}}>{up?"+":""}{gainPct}%</div>
-          <div style={{fontSize:12,color:card.vendu?"#818cf8":up?"#22c55e":"#ef4444"}}>{up?"+":""}{fmt(gain)}</div>
+          <div style={{fontSize:13,color:T.textSub,marginBottom:2}}>{fmt(card.achat)}</div>
+          <div style={{fontSize:14,fontWeight:800,color:up?"#22c55e":"#ef4444"}}>{fmt(card.valeur)}</div>
+          <div style={{fontSize:11,color:up?"#22c55e":"#ef4444"}}>{up?"+":""}{gainPct}%</div>
         </div>
       </div>
       {open&&(
         <div style={{borderTop:`1px solid ${T.border}`,padding:"14px 16px"}}>
-          <CardImage card={card} tcg={tcg} T={T}/>
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
-            {[["Achat",fmt(card.achat)],[card.vendu?"Vendu":"Actuel",fmt(sellPrice)],["P&L",(gain>=0?"+":"")+fmt(gain)],["ROI",(gainPct>=0?"+":"")+gainPct+"%"]].map(([k,v])=>(
+            {[["Achat",fmt(card.achat)],["Actuel",fmt(card.valeur)],["P&L",(gain>=0?"+":"")+fmt(gain)],["ROI",(gainPct>=0?"+":"")+gainPct+"%"]].map(([k,v])=>(
               <div key={k} style={{background:T.surface2,borderRadius:10,padding:"8px 6px",textAlign:"center"}}>
                 <div style={{fontSize:9,color:T.textSub,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:3}}>{k}</div>
                 <div style={{fontSize:13,fontWeight:700,color:T.text}}>{v}</div>
               </div>
             ))}
           </div>
-          <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
-            {card.surLiquidite&&<span style={{fontSize:11,padding:"3px 8px",borderRadius:6,background:"rgba(34,197,94,0.1)",color:"#22c55e",border:"1px solid rgba(34,197,94,0.2)"}}>💰 Liquidité</span>}
-            {card.numero&&card.numero!=="—"&&<span style={{fontSize:11,padding:"3px 8px",borderRadius:6,background:T.surface2,color:T.textSub}}>#{card.numero}</span>}
-          </div>
           {card.notes&&<div style={{fontSize:13,color:T.textSub,marginBottom:12,padding:"10px 12px",background:T.surface2,borderRadius:10,fontStyle:"italic"}}>{card.notes}</div>}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-            <a href={buildCMUrl(card)} target="_blank" rel="noopener noreferrer" style={{padding:"12px",background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:12,color:"#60a5fa",fontSize:13,textDecoration:"none",fontWeight:600,textAlign:"center",display:"block"}}>📊 Cardmarket</a>
-            <a href={buildEbayUrl(card)} target="_blank" rel="noopener noreferrer" style={{padding:"12px",background:"rgba(234,179,8,0.1)",border:"1px solid rgba(234,179,8,0.2)",borderRadius:12,color:"#eab308",fontSize:13,textDecoration:"none",fontWeight:600,textAlign:"center",display:"block"}}>🔍 eBay vendus</a>
+            <a href={buildCMUrl(card)} target="_blank" rel="noopener noreferrer" style={{padding:"11px",background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:12,color:"#60a5fa",fontSize:12,textDecoration:"none",fontWeight:600,textAlign:"center",display:"block"}}>📊 Cardmarket</a>
+            <a href={buildEbayUrl(card)} target="_blank" rel="noopener noreferrer" style={{padding:"11px",background:"rgba(234,179,8,0.1)",border:"1px solid rgba(234,179,8,0.2)",borderRadius:12,color:"#eab308",fontSize:12,textDecoration:"none",fontWeight:600,textAlign:"center",display:"block"}}>🔍 eBay vendus</a>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             <button onClick={()=>onEdit(card)} style={{padding:"12px",background:T.surface2,border:`1px solid ${T.border}`,borderRadius:12,color:T.textSub,cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>✏️ Modifier</button>
@@ -246,49 +276,116 @@ function CardItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
 
 // ── TCG VIEW ──────────────────────────────────────────────────────────────────
 function TcgView({ tcg, cards, onEdit, onDelete, T }) {
-  const actives = cards.filter(c=>!c.vendu);
-  const vendues = cards.filter(c=>c.vendu);
-  const inv = actives.reduce((s,c)=>s+c.achat,0);
-  const val = actives.reduce((s,c)=>s+c.valeur,0);
-  const gain = val-inv;
-  const roi = parseFloat(pct(inv,val));
+  const [viewMode,setViewMode]=useState("grid");
+  const actives=cards.filter(c=>!c.vendu);
+  const inv=actives.reduce((s,c)=>s+c.achat,0);
+  const val=actives.reduce((s,c)=>s+c.valeur,0);
+  const gain=val-inv;
+  const roi=parseFloat(pct(inv,val));
   return (
     <div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
         {[["Investi",fmt(inv),"#60a5fa"],["Valeur",fmt(val),T.text],["P&L",(gain>=0?"+":"")+fmt(gain),gain>=0?"#22c55e":"#ef4444"]].map(([k,v,c])=>(
-          <div key={k} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:14,padding:"14px 10px",textAlign:"center"}}>
-            <div style={{fontSize:10,color:T.textSub,textTransform:"uppercase",letterSpacing:"1px",marginBottom:5}}>{k}</div>
-            <div style={{fontSize:18,fontWeight:800,color:c}}>{v}</div>
+          <div key={k} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:14,padding:"12px 10px",textAlign:"center"}}>
+            <div style={{fontSize:10,color:T.textSub,textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>{k}</div>
+            <div style={{fontSize:15,fontWeight:800,color:c}}>{v}</div>
           </div>
         ))}
       </div>
       {inv>0&&(
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18,padding:"12px 16px",background:T.surface,borderRadius:14,border:`1px solid ${T.border}`}}>
-          <span style={{fontSize:20}}>{roi>=0?"📈":"📉"}</span>
-          <span style={{fontSize:15,fontWeight:800,color:roi>=0?"#22c55e":"#ef4444"}}>ROI {roi>=0?"+":""}{roi}%</span>
-          <span style={{fontSize:12,color:T.textSub,marginLeft:"auto"}}>{actives.length} active{actives.length>1?"s":""}{vendues.length>0?` · ${vendues.length} vendue${vendues.length>1?"s":""}`:""}</span>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,padding:"10px 14px",background:T.surface,borderRadius:12,border:`1px solid ${T.border}`}}>
+          <span style={{fontSize:18}}>{roi>=0?"📈":"📉"}</span>
+          <span style={{fontSize:14,fontWeight:800,color:roi>=0?"#22c55e":"#ef4444"}}>ROI {roi>=0?"+":""}{roi}%</span>
+          <span style={{fontSize:12,color:T.textSub,marginLeft:"auto"}}>{actives.length} carte{actives.length>1?"s":""}</span>
+          {/* Toggle */}
+          <div style={{display:"flex",background:T.surface2,borderRadius:8,padding:2,gap:2}}>
+            {[["grid","⊞"],["list","☰"]].map(([m,icon])=>(
+              <button key={m} onClick={()=>setViewMode(m)} style={{padding:"4px 10px",borderRadius:6,fontSize:14,border:"none",cursor:"pointer",background:viewMode===m?tcg.color+"33":"transparent",color:viewMode===m?tcg.color:T.textSub,fontFamily:"inherit"}}>
+                {icon}
+              </button>
+            ))}
+          </div>
         </div>
       )}
-      {cards.length===0?(
+      {actives.length===0?(
         <div style={{textAlign:"center",padding:"60px 20px",color:T.textSub}}>
           <div style={{fontSize:44,marginBottom:14}}>📭</div>
           <div style={{fontSize:17,fontWeight:700,color:T.text,marginBottom:6}}>Aucune carte</div>
           <div style={{fontSize:14}}>Appuie sur + pour en ajouter</div>
         </div>
-      ):cards.map(card=><CardItem key={card.id} card={card} tcg={tcg.id} tcgColor={tcg.color} onEdit={onEdit} onDelete={onDelete} T={T}/>)}
+      ):viewMode==="grid"?(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          {actives.map(card=><CardGridItem key={card.id} card={card} tcg={tcg.id} tcgColor={tcg.color} onEdit={onEdit} onDelete={onDelete} T={T}/>)}
+        </div>
+      ):(
+        actives.map(card=><CardListItem key={card.id} card={card} tcg={tcg.id} tcgColor={tcg.color} onEdit={onEdit} onDelete={onDelete} T={T}/>)
+      )}
+    </div>
+  );
+}
+
+// ── VENDUES VIEW ──────────────────────────────────────────────────────────────
+function VenduesView({ data, onRestaurer, T }) {
+  const allVendues = TCGS.flatMap(t=>(data[t.id]||[]).filter(c=>c.vendu).map(c=>({...c,_tcg:t.id,_tcgLabel:t.label,_tcgColor:t.color})));
+  const totalAchat = allVendues.reduce((s,c)=>s+c.achat,0);
+  const totalVente = allVendues.filter(c=>c.prixVente).reduce((s,c)=>s+c.prixVente,0);
+  const totalBenef = totalVente-totalAchat;
+  return (
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:20}}>
+        {[["Total acheté",fmt(totalAchat),"#60a5fa"],["Total vendu",fmt(totalVente),"#a78bfa"],["Bénéfice",(totalBenef>=0?"+":"")+fmt(totalBenef),totalBenef>=0?"#22c55e":"#ef4444"]].map(([k,v,c])=>(
+          <div key={k} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:14,padding:"12px 10px",textAlign:"center"}}>
+            <div style={{fontSize:9,color:T.textSub,textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>{k}</div>
+            <div style={{fontSize:14,fontWeight:800,color:c}}>{v}</div>
+          </div>
+        ))}
+      </div>
+      {allVendues.length===0?(
+        <div style={{textAlign:"center",padding:"60px 20px",color:T.textSub}}>
+          <div style={{fontSize:44,marginBottom:14}}>✅</div>
+          <div style={{fontSize:17,fontWeight:700,color:T.text,marginBottom:6}}>Aucune carte vendue</div>
+          <div style={{fontSize:14}}>Les cartes marquées "vendu" apparaîtront ici</div>
+        </div>
+      ):allVendues.map(card=>{
+        const benef=(card.prixVente||0)-card.achat;
+        const benefPct=parseFloat(pct(card.achat,card.prixVente||card.achat));
+        return (
+          <div key={card.id} style={{marginBottom:10,borderRadius:16,overflow:"hidden",border:`1px solid rgba(99,102,241,0.2)`,background:"rgba(99,102,241,0.04)"}}>
+            <div style={{padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:4,height:52,borderRadius:2,background:benef>=0?"#22c55e":"#ef4444",flexShrink:0}}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{card.name}</div>
+                <div style={{fontSize:11,color:T.textSub,marginBottom:6}}>{card._tcgLabel} · {card.langue}{card.set&&card.set!=="—"?" · "+card.set:""}</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
+                  {[["Achat",fmt(card.achat),"#60a5fa"],["Vendu",fmt(card.prixVente||0),"#a78bfa"],["Bénéf.",(benef>=0?"+":"")+fmt(benef),benef>=0?"#22c55e":"#ef4444"]].map(([k,v,c])=>(
+                    <div key={k} style={{background:T.surface,borderRadius:8,padding:"6px 8px",textAlign:"center"}}>
+                      <div style={{fontSize:9,color:T.textSub,textTransform:"uppercase",marginBottom:2}}>{k}</div>
+                      <div style={{fontSize:12,fontWeight:700,color:c}}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{fontSize:18,fontWeight:900,color:benef>=0?"#22c55e":"#ef4444"}}>{benef>=0?"+":""}{benefPct}%</div>
+                <button onClick={()=>onRestaurer(card._tcg,card.id)} style={{marginTop:8,padding:"6px 12px",background:"rgba(99,102,241,0.15)",border:"1px solid rgba(99,102,241,0.3)",borderRadius:8,color:"#818cf8",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",whiteSpace:"nowrap"}}>↩ Restaurer</button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 // ── LIQUIDITE VIEW ────────────────────────────────────────────────────────────
 function LiquiditeView({ data, onInjecter, onEditInjection, onDeleteInjection, T }) {
-  const { totalInjecte,totalAchats,totalVentes,solde } = calcLiquidite(data);
-  const [showInject,setShowInject] = useState(false);
-  const [editingIdx,setEditingIdx] = useState(null);
-  const [montant,setMontant] = useState("");
-  const [label,setLabel] = useState("");
-  const historique = (data.liquidite?.historique||[]).slice().reverse();
-  const inp = {background:T.inputBg,border:`1px solid ${T.border2}`,borderRadius:12,color:T.text,padding:"14px",fontSize:15,outline:"none",width:"100%",fontFamily:"inherit"};
+  const { totalInjecte,totalAchats,totalVentes,solde }=calcLiquidite(data);
+  const [showInject,setShowInject]=useState(false);
+  const [editingIdx,setEditingIdx]=useState(null);
+  const [montant,setMontant]=useState("");
+  const [label,setLabel]=useState("");
+  const historique=(data.liquidite?.historique||[]).slice().reverse();
+  const inp={background:T.inputBg,border:`1px solid ${T.border2}`,borderRadius:12,color:T.text,padding:"14px",fontSize:15,outline:"none",width:"100%",fontFamily:"inherit"};
   return (
     <div>
       <div style={{background:solde>=0?"linear-gradient(135deg,#052e16,#14532d)":"linear-gradient(135deg,#450a0a,#7f1d1d)",borderRadius:22,padding:"24px 20px",marginBottom:20,border:`1px solid ${solde>=0?"rgba(34,197,94,0.2)":"rgba(239,68,68,0.2)"}`}}>
@@ -319,7 +416,7 @@ function LiquiditeView({ data, onInjecter, onEditInjection, onDeleteInjection, T
                   <div style={{fontSize:11,color:T.textSub}}>{h.date}</div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
-                  <div style={{fontSize:15,fontWeight:800,color:h.type==="achat"?"#ef4444":"#22c55e"}}>{h.type==="achat"?"-":"+"}{fmt(h.montant)}</div>
+                  <div style={{fontSize:14,fontWeight:800,color:h.type==="achat"?"#ef4444":"#22c55e"}}>{h.type==="achat"?"-":"+"}{fmt(h.montant)}</div>
                   {h.type==="injection"&&<>
                     <button onClick={()=>{setEditingIdx(realIdx);setMontant(String(h.montant));setLabel(h.label);setShowInject(true);}} style={{width:28,height:28,borderRadius:8,background:T.surface2,border:`1px solid ${T.border}`,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
                     <button onClick={()=>onDeleteInjection(realIdx)} style={{width:28,height:28,borderRadius:8,background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>🗑</button>
@@ -355,12 +452,13 @@ function LiquiditeView({ data, onInjecter, onEditInjection, onDeleteInjection, T
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function Dashboard({ data, T }) {
-  const allCards = TCGS.flatMap(t=>(data[t.id]||[]).filter(c=>!c.vendu));
-  const inv = allCards.reduce((s,c)=>s+c.achat,0);
-  const val = allCards.reduce((s,c)=>s+c.valeur,0);
-  const gain = val-inv;
-  const roi = parseFloat(pct(inv,val));
-  const { solde,totalInjecte,totalAchats,totalVentes } = calcLiquidite(data);
+  const allCards=TCGS.flatMap(t=>(data[t.id]||[]).filter(c=>!c.vendu));
+  const inv=allCards.reduce((s,c)=>s+c.achat,0);
+  const val=allCards.reduce((s,c)=>s+c.valeur,0);
+  const gain=val-inv;
+  const roi=parseFloat(pct(inv,val));
+  const { solde,totalInjecte,totalAchats,totalVentes }=calcLiquidite(data);
+  const nbVendues=TCGS.flatMap(t=>(data[t.id]||[]).filter(c=>c.vendu)).length;
   return (
     <div>
       <div style={{background:"linear-gradient(135deg,#131d35,#0f1624)",borderRadius:22,padding:"24px 20px",marginBottom:20,border:"1px solid rgba(99,102,241,0.2)",position:"relative",overflow:"hidden"}}>
@@ -371,8 +469,13 @@ function Dashboard({ data, T }) {
           <span style={{fontSize:15,fontWeight:700,color:gain>=0?"#22c55e":"#ef4444"}}>{gain>=0?"▲ +":"▼ "}{fmt(gain)}</span>
           <span style={{fontSize:12,color:"#475569"}}>vs {fmt(inv)} · {allCards.length} cartes</span>
         </div>
-        <div style={{display:"inline-flex",alignItems:"center",padding:"6px 14px",borderRadius:20,background:(roi>=0?"rgba(34,197,94,":"rgba(239,68,68,")+"0.15)",border:`1px solid ${(roi>=0?"rgba(34,197,94,":"rgba(239,68,68,")+"0.3)"}`}}>
-          <span style={{fontSize:14,fontWeight:800,color:roi>=0?"#22c55e":"#ef4444"}}>ROI {roi>=0?"+":""}{roi}%</span>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <div style={{display:"inline-flex",alignItems:"center",padding:"6px 14px",borderRadius:20,background:(roi>=0?"rgba(34,197,94,":"rgba(239,68,68,")+"0.15)",border:`1px solid ${(roi>=0?"rgba(34,197,94,":"rgba(239,68,68,")+"0.3)"}`}}>
+            <span style={{fontSize:14,fontWeight:800,color:roi>=0?"#22c55e":"#ef4444"}}>ROI {roi>=0?"+":""}{roi}%</span>
+          </div>
+          {nbVendues>0&&<div style={{display:"inline-flex",alignItems:"center",padding:"6px 14px",borderRadius:20,background:"rgba(99,102,241,0.15)",border:"1px solid rgba(99,102,241,0.3)"}}>
+            <span style={{fontSize:14,fontWeight:800,color:"#818cf8"}}>✅ {nbVendues} vendue{nbVendues>1?"s":""}</span>
+          </div>}
         </div>
       </div>
       <div style={{fontSize:12,color:T.textSub,textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:12}}>Par TCG</div>
@@ -385,7 +488,7 @@ function Dashboard({ data, T }) {
             <div key={tcg.id} style={{flexShrink:0,width:148,background:T.surface,border:`1px solid ${T.border}`,borderRadius:18,padding:"16px 14px",borderTop:`3px solid ${tcg.color}`}}>
               <div style={{fontSize:13,fontWeight:700,color:tcg.color,marginBottom:10}}>{tcg.icon} {tcg.label}</div>
               <div style={{fontSize:11,color:T.textSub,marginBottom:2}}>Investi</div>
-              <div style={{fontSize:18,fontWeight:900,color:T.text,marginBottom:4,letterSpacing:"-0.5px"}}>{fmt(i)}</div>
+              <div style={{fontSize:17,fontWeight:900,color:T.text,marginBottom:4}}>{fmt(i)}</div>
               <div style={{fontSize:13,color:(v-i)>=0?"#22c55e":"#ef4444",marginBottom:4}}>{(v-i)>=0?"+":""}{fmt(v-i)}</div>
               <div style={{fontSize:11,color:T.textSub}}>{cards.length} carte{cards.length>1?"s":""}</div>
             </div>
@@ -397,7 +500,7 @@ function Dashboard({ data, T }) {
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
           <div>
             <div style={{fontSize:12,color:T.textSub,marginBottom:4}}>Solde disponible</div>
-            <div style={{fontSize:26,fontWeight:900,color:solde>=0?"#22c55e":"#ef4444",letterSpacing:"-0.5px"}}>{fmt(solde)}</div>
+            <div style={{fontSize:26,fontWeight:900,color:solde>=0?"#22c55e":"#ef4444"}}>{fmt(solde)}</div>
           </div>
           <span style={{fontSize:32}}>💰</span>
         </div>
@@ -416,13 +519,13 @@ function Dashboard({ data, T }) {
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
 export default function App() {
-  const [data,setData] = useState(loadData);
-  const [activeTab,setActiveTab] = useState("dashboard");
-  const [modal,setModal] = useState(null);
-  const [mounted,setMounted] = useState(false);
-  const [theme,setTheme] = useState(loadTheme);
-  const [showReset,setShowReset] = useState(false);
-  const T = THEMES[theme];
+  const [data,setData]=useState(loadData);
+  const [activeTab,setActiveTab]=useState("dashboard");
+  const [modal,setModal]=useState(null);
+  const [mounted,setMounted]=useState(false);
+  const [theme,setTheme]=useState(loadTheme);
+  const [showReset,setShowReset]=useState(false);
+  const T=THEMES[theme];
 
   useEffect(()=>{setMounted(true);},[]);
   useEffect(()=>{saveData(data);},[data]);
@@ -443,13 +546,15 @@ export default function App() {
     setModal(null);
   }
 
-  function handleDelete(tcg,id) { setData(prev=>({...prev,[tcg]:(prev[tcg]||[]).filter(c=>c.id!==id)})); }
-  function handleInjecter(m,l) { setData(prev=>({...prev,liquidite:{...prev.liquidite,historique:[...(prev.liquidite?.historique||[]),{type:"injection",montant:m,label:l,date:dateStr()}]}})); }
-  function handleEditInjection(idx,m,l) { setData(prev=>{const h=[...(prev.liquidite?.historique||[])];h[idx]={...h[idx],montant:m,label:l};return{...prev,liquidite:{...prev.liquidite,historique:h}};}); }
-  function handleDeleteInjection(idx) { setData(prev=>{const h=[...(prev.liquidite?.historique||[])];h.splice(idx,1);return{...prev,liquidite:{...prev.liquidite,historique:h}};}); }
-  function handleReset() { try{localStorage.removeItem(STORAGE_KEY);}catch{} setData(defaultData); setShowReset(false); }
+  function handleDelete(tcg,id){setData(prev=>({...prev,[tcg]:(prev[tcg]||[]).filter(c=>c.id!==id)}));}
+  function handleRestaurer(tcg,id){setData(prev=>({...prev,[tcg]:(prev[tcg]||[]).map(c=>c.id===id?{...c,vendu:false,prixVente:null}:c)}));}
+  function handleInjecter(m,l){setData(prev=>({...prev,liquidite:{...prev.liquidite,historique:[...(prev.liquidite?.historique||[]),{type:"injection",montant:m,label:l,date:dateStr()}]}}));}
+  function handleEditInjection(idx,m,l){setData(prev=>{const h=[...(prev.liquidite?.historique||[])];h[idx]={...h[idx],montant:m,label:l};return{...prev,liquidite:{...prev.liquidite,historique:h}};});}
+  function handleDeleteInjection(idx){setData(prev=>{const h=[...(prev.liquidite?.historique||[])];h.splice(idx,1);return{...prev,liquidite:{...prev.liquidite,historique:h}};});}
+  function handleReset(){try{localStorage.removeItem(STORAGE_KEY);}catch{}setData(defaultData);setShowReset(false);}
 
-  const activeTcg = TCGS.find(t=>t.id===activeTab);
+  const activeTcg=TCGS.find(t=>t.id===activeTab);
+  const nbVendues=TCGS.flatMap(t=>(data[t.id]||[]).filter(c=>c.vendu)).length;
 
   return (
     <>
@@ -472,25 +577,28 @@ export default function App() {
         </div>
         <div style={{padding:"8px 20px 20px"}}>
           <div style={{fontSize:28,fontWeight:900,letterSpacing:"-0.5px"}}>
-            {activeTab==="dashboard"?"Vue d'ensemble":activeTab==="liquidite"?"💰 Liquidité":activeTcg?.icon+" "+activeTcg?.label}
+            {activeTab==="dashboard"?"Vue d'ensemble":activeTab==="liquidite"?"💰 Liquidité":activeTab==="vendues"?"✅ Cartes vendues":activeTcg?.icon+" "+activeTcg?.label}
           </div>
         </div>
         <div style={{padding:"0 16px",opacity:mounted?1:0,transition:"opacity 0.3s"}}>
           {activeTab==="dashboard"&&<Dashboard data={data} T={T}/>}
           {activeTcg&&<TcgView tcg={activeTcg} cards={data[activeTab]||[]} onEdit={card=>setModal({tcg:activeTab,card})} onDelete={handleDelete} T={T}/>}
           {activeTab==="liquidite"&&<LiquiditeView data={data} onInjecter={handleInjecter} onEditInjection={handleEditInjection} onDeleteInjection={handleDeleteInjection} T={T}/>}
+          {activeTab==="vendues"&&<VenduesView data={data} onRestaurer={handleRestaurer} T={T}/>}
         </div>
       </div>
+      {/* BOTTOM NAV */}
       <div style={{position:"fixed",bottom:0,left:0,right:0,background:T.navBg,borderTop:`1px solid ${T.border}`,paddingBottom:"env(safe-area-inset-bottom,16px)",display:"flex",justifyContent:"space-around",zIndex:100}}>
         {NAV.map(n=>{
           const active=activeTab===n.id;
           const tcg=TCGS.find(t=>t.id===n.id);
-          const color=active?(tcg?.color||(n.id==="liquidite"?"#22c55e":"#f59e0b")):T.textSub;
+          const color=active?(tcg?.color||(n.id==="liquidite"?"#22c55e":n.id==="vendues"?"#818cf8":"#f59e0b")):T.textSub;
           return (
-            <button key={n.id} onClick={()=>setActiveTab(n.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"none",border:"none",cursor:"pointer",padding:"10px 6px 6px",minWidth:52}}>
-              <span style={{fontSize:22,opacity:active?1:0.45,transition:"opacity 0.2s"}}>{n.icon}</span>
-              <span style={{fontSize:10,fontWeight:active?700:500,color,transition:"color 0.2s"}}>{n.label}</span>
-              {active&&<div style={{width:18,height:3,borderRadius:2,background:color,marginTop:1}}/>}
+            <button key={n.id} onClick={()=>setActiveTab(n.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,background:"none",border:"none",cursor:"pointer",padding:"10px 4px 6px",minWidth:48,position:"relative"}}>
+              <span style={{fontSize:20,opacity:active?1:0.45,transition:"opacity 0.2s"}}>{n.icon}</span>
+              <span style={{fontSize:9,fontWeight:active?700:500,color,transition:"color 0.2s"}}>{n.label}</span>
+              {active&&<div style={{width:16,height:3,borderRadius:2,background:color,marginTop:1}}/>}
+              {n.id==="vendues"&&nbVendues>0&&!active&&<div style={{position:"absolute",top:6,right:6,width:16,height:16,borderRadius:"50%",background:"#6366f1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800,color:"#fff"}}>{nbVendues}</div>}
             </button>
           );
         })}
@@ -501,7 +609,7 @@ export default function App() {
           <div style={{background:T.modalBg,borderRadius:"24px 24px 0 0",padding:"20px 20px 44px",width:"100%",maxWidth:500}} onClick={e=>e.stopPropagation()}>
             <div style={{width:40,height:4,background:T.border2,borderRadius:2,margin:"0 auto 20px"}}/>
             <div style={{fontSize:18,fontWeight:800,color:T.text,marginBottom:6}}>⚙️ Paramètres</div>
-            <div style={{fontSize:13,color:T.textSub,marginBottom:24}}>PokéVault v4.0</div>
+            <div style={{fontSize:13,color:T.textSub,marginBottom:24}}>PokéVault v5.0</div>
             <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:16,padding:"16px"}}>
               <div style={{fontSize:15,fontWeight:700,color:"#ef4444",marginBottom:6}}>⚠️ Réinitialiser</div>
               <div style={{fontSize:13,color:T.textSub,marginBottom:14}}>Recharge les données par défaut.</div>
