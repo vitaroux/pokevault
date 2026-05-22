@@ -26,8 +26,8 @@ function loadData() { try { const r=localStorage.getItem(STORAGE_KEY); return r?
 function saveData(d) { try { localStorage.setItem(STORAGE_KEY,JSON.stringify(d)); } catch {} }
 function loadTheme() { try { return localStorage.getItem(THEME_KEY)||"light"; } catch { return "light"; } }
 function loadImages() { try { return JSON.parse(localStorage.getItem(IMG_KEY)||"{}"); } catch { return {}; } }
-function saveImage(id,b64) { try { const i=loadImages(); i[id]=b64; localStorage.setItem(IMG_KEY,JSON.stringify(i)); } catch {} }
-function deleteImage(id) { try { const i=loadImages(); delete i[id]; localStorage.setItem(IMG_KEY,JSON.stringify(i)); } catch {} }
+function saveImage(id,b64) { try { const i=loadImages(); i[String(id)]=b64; localStorage.setItem(IMG_KEY,JSON.stringify(i)); } catch {} }
+function deleteImage(id) { try { const i=loadImages(); delete i[String(id)]; localStorage.setItem(IMG_KEY,JSON.stringify(i)); } catch {} }
 const FR_TO_EN = {
   "noctali":"umbreon","dracaufeu":"charizard","ectoplasma":"gengar","pikachu":"pikachu",
   "ronflex":"snorlax","mewtwo":"mewtwo","lokhlass":"lapras","tortank":"blastoise",
@@ -134,8 +134,9 @@ function CardImage({ card, tcg, T, style, hideControls, externalImg, onImgChange
   const setCustomImg = (v) => { setLocalImg(v); onImgChange&&onImgChange(v); };
 
   useEffect(()=>{
-    const saved = loadImages()[card.id];
-    if(saved){ setLocalImg(saved); onImgChange&&onImgChange(saved); return; }
+    const all = loadImages();
+    const saved = all[card.id] || all[String(card.id)];
+    if(saved){ setLocalImg(saved); setLoading(false); onImgChange&&onImgChange(saved); return; }
     if(tcg==="pokemon"){
       setLoading(true);
       fetchPokemonImage(card.name).then(url=>{setAutoImg(url);setLoading(false);});
