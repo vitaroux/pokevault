@@ -5,44 +5,9 @@ const THEME_KEY = "pokevault-theme";
 const IMG_KEY = "pokevault-images";
 
 const defaultData = {
-  pokemon: [
-    { id: 1, name: "Pikachu & Zekrom GX", numero: "031/095", set: "Tag Bolt", langue: "JP", statut: "PSA 10", achat: 164, valeur: 164, surLiquidite: true, vendu: false, prixVente: null, notes: "Illustré par Mitsuhiro Arita" },
-    { id: 2, name: "Gengar & Mimikyu GX SA", numero: "103/095", set: "Tag Bolt", langue: "JP", statut: "AFG 9.5 → PSA en cours", achat: 600, valeur: 600, surLiquidite: true, vendu: false, prixVente: null, notes: "Graal Tag Team" },
-    { id: 10, name: "Pikachu & Zekrom GX", numero: "031/095", set: "Tag Bolt JP", langue: "JP", statut: "PSA 10", achat: 161.19, valeur: 161.19, surLiquidite: true, vendu: false, prixVente: null, notes: "En transit" },
-    { id: 11, name: "Reshiram & Charizard GX", numero: "016/173", set: "Tag All Stars", langue: "JP", statut: "PSA 10", achat: 87.69, valeur: 87.69, surLiquidite: true, vendu: false, prixVente: null, notes: "En transit" },
-    { id: 12, name: "Lugia", numero: "249", set: "Neo Genesis", langue: "JP", statut: "Raw NM", achat: 299.25, valeur: 299.25, surLiquidite: true, vendu: false, prixVente: null, notes: "Vintage JP" },
-    { id: 13, name: "Noctali (Umbreon)", numero: "06/15", set: "Chinese Gem Pack Vol. 2", langue: "CN", statut: "En transit", achat: 126.50, valeur: 126.50, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 14, name: "Noctali (Umbreon)", numero: "06/15", set: "Chinese Gem Pack Vol. 2", langue: "CN", statut: "En transit", achat: 131.75, valeur: 131.75, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 15, name: "Pikachu & Zekrom GX", numero: "166", set: "CSM2aC", langue: "CN", statut: "PSA 9", achat: 183.75, valeur: 183.75, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 16, name: "Umbreon V", numero: "152/132", set: "9 Colors Gather", langue: "CN", statut: "CGC Pristine 10", achat: 150, valeur: 150, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 20, name: "Latias GG20", numero: "GG20", set: "Crown Zenith", langue: "FR", statut: "Raw NM", achat: 21.43, valeur: 21.43, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 21, name: "Mew EX Gold", numero: "205/165", set: "151 EV3.5", langue: "FR", statut: "Raw NM", achat: 32.24, valeur: 32.24, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 22, name: "Dracaufeu VMAX", numero: "261", set: "—", langue: "FR", statut: "Gradé", achat: 87.69, valeur: 87.69, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 23, name: "Pikachu GG30", numero: "GG30", set: "Zénith Suprême", langue: "FR", statut: "PSA 9", achat: 61.44, valeur: 61.44, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 24, name: "Ectoplasma", numero: "157/264", set: "—", langue: "FR", statut: "Gradé", achat: 161.99, valeur: 161.99, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 25, name: "Sulfura ex Team Rocket", numero: "—", set: "Rivaux Destinés", langue: "FR", statut: "Gradé", achat: 77.99, valeur: 77.99, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 26, name: "Pikachu CRZ 160", numero: "160", set: "Crown Zenith", langue: "FR", statut: "Raw NM", achat: 71.94, valeur: 71.94, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 27, name: "Pikachu VMAX TG17", numero: "TG17", set: "Lost Origin", langue: "FR", statut: "Raw NM", achat: 77.19, valeur: 77.19, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 28, name: "Pikachu VMAX", numero: "—", set: "—", langue: "FR", statut: "PSA 10", achat: 318.69, valeur: 318.69, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 29, name: "Mew Ryota Murayama", numero: "—", set: "—", langue: "FR", statut: "Raw NM", achat: 66.89, valeur: 66.89, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 30, name: "Dracaufeu Alt Art", numero: "234/091", set: "Destinées de Paldea", langue: "FR", statut: "Raw NM", achat: 197.94, valeur: 197.94, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 31, name: "Mew Point Fusion", numero: "—", set: "Poing de Fusion", langue: "FR", statut: "Raw NM", achat: 46.49, valeur: 46.49, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 32, name: "Reshiram & Charizard GX", numero: "—", set: "—", langue: "JP", statut: "Retour initié", achat: 132.25, valeur: 132.25, surLiquidite: true, vendu: false, prixVente: null, notes: "⚠️ Retour en cours" },
-    { id: 33, name: "Tortank Alt Art", numero: "200/165", set: "151 EV3.5", langue: "FR", statut: "En transit", achat: 161.08, valeur: 161.08, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-  ],
-  op: [
-    { id: 40, name: "Boa Hancock Alt Art", numero: "OP01-078", set: "OP01", langue: "JP", statut: "Gradé", achat: 404.25, valeur: 404.25, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 41, name: "Boa Hancock Alt Art", numero: "—", set: "One Piece", langue: "JP", statut: "PSA 10", achat: 141.75, valeur: 141.75, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 42, name: "Boa Hancock SP SR", numero: "OP12-014", set: "OP12", langue: "JP", statut: "Raw NM", achat: 224.19, valeur: 224.19, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 43, name: "Vinsmoke Sanji", numero: "—", set: "One Piece", langue: "JP", statut: "Raw NM", achat: 36.75, valeur: 36.75, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 44, name: "Boa Hancock SP", numero: "OP07-051", set: "OP07", langue: "JP", statut: "CGC Pristine 10", achat: 321.14, valeur: 321.14, surLiquidite: true, vendu: false, prixVente: null, notes: "⚠️ Problème livraison" },
-  ],
-  dbz: [
-    { id: 50, name: "Son Gohan Childhood", numero: "FB08-106", set: "Dragon Ball Super", langue: "JP", statut: "En transit", achat: 47.75, valeur: 47.75, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 51, name: "Son Goku Alt Art", numero: "BT13-123", set: "Dragon Ball Super", langue: "JP", statut: "PSA 10", achat: 162.75, valeur: 162.75, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 52, name: "Son Goku", numero: "FB01-139", set: "Fusion World", langue: "JP", statut: "En transit", achat: 47.09, valeur: 47.09, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-    { id: 53, name: "Enel", numero: "—", set: "Dragon Ball Super", langue: "JP", statut: "Gradé", achat: 89.25, valeur: 89.25, surLiquidite: true, vendu: false, prixVente: null, notes: "" },
-  ],
+  pokemon: [],
+  op: [],
+  dbz: [],
   sealed: [],
   liquidite: { historique: [] },
 };
@@ -682,7 +647,6 @@ export default function App() {
   const [modal,setModal]=useState(null);
   const [mounted,setMounted]=useState(false);
   const [theme,setTheme]=useState(loadTheme);
-  const [showReset,setShowReset]=useState(false);
   const T=THEMES[theme];
 
   useEffect(()=>{setMounted(true);},[]);
@@ -721,7 +685,6 @@ export default function App() {
   function handleInjecter(m,l){setData(prev=>({...prev,liquidite:{...prev.liquidite,historique:[...(prev.liquidite?.historique||[]),{type:"injection",montant:m,label:l,date:dateStr()}]}}));}
   function handleEditInjection(idx,m,l){setData(prev=>{const h=[...(prev.liquidite?.historique||[])];h[idx]={...h[idx],montant:m,label:l};return{...prev,liquidite:{...prev.liquidite,historique:h}};});}
   function handleDeleteInjection(idx){setData(prev=>{const h=[...(prev.liquidite?.historique||[])];h.splice(idx,1);return{...prev,liquidite:{...prev.liquidite,historique:h}};});}
-  function handleReset(){try{localStorage.removeItem(STORAGE_KEY);}catch{}setData(defaultData);setShowReset(false);}
 
   const activeTcg=TCGS.find(t=>t.id===activeTab);
   const nbVendues=TCGS.flatMap(t=>(data[t.id]||[]).filter(c=>c.vendu)).length;
@@ -741,7 +704,6 @@ export default function App() {
           </div>
           <div style={{display:"flex",gap:8}}>
             <button onClick={()=>setTheme(t=>t==="dark"?"light":"dark")} style={{width:40,height:40,borderRadius:13,background:T.surface,border:`1px solid ${T.border}`,cursor:"pointer",fontSize:19,display:"flex",alignItems:"center",justifyContent:"center"}}>{theme==="dark"?"☀️":"🌙"}</button>
-            <button onClick={()=>setShowReset(true)} style={{width:40,height:40,borderRadius:13,background:T.surface,border:`1px solid ${T.border}`,cursor:"pointer",fontSize:19,display:"flex",alignItems:"center",justifyContent:"center"}}>⚙️</button>
             {activeTcg&&<button onClick={()=>setModal({tcg:activeTab})} style={{width:40,height:40,borderRadius:13,background:"linear-gradient(135deg,#f59e0b,#f97316)",border:"none",color:"#000",fontWeight:900,cursor:"pointer",fontSize:24,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(245,158,11,0.35)"}}>+</button>}
             {activeTab==="sealed"&&<button onClick={()=>document.dispatchEvent(new CustomEvent("sealed-add"))} style={{width:40,height:40,borderRadius:13,background:"linear-gradient(135deg,#60a5fa,#6366f1)",border:"none",color:"#fff",fontWeight:900,cursor:"pointer",fontSize:24,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(99,102,241,0.35)"}}>+</button>}
           </div>
@@ -776,21 +738,6 @@ export default function App() {
         })}
       </div>
       {modal&&<CardModal tcg={modal.tcg} card={modal.card} onSave={handleSave} onClose={()=>setModal(null)} T={T}/>}
-      {showReset&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:300}} onClick={()=>setShowReset(false)}>
-          <div style={{background:T.modalBg,borderRadius:"24px 24px 0 0",padding:"20px 20px 44px",width:"100%",maxWidth:500}} onClick={e=>e.stopPropagation()}>
-            <div style={{width:40,height:4,background:T.border2,borderRadius:2,margin:"0 auto 20px"}}/>
-            <div style={{fontSize:18,fontWeight:800,color:T.text,marginBottom:6}}>⚙️ Paramètres</div>
-            <div style={{fontSize:13,color:T.textSub,marginBottom:24}}>PokéVault v5.0</div>
-            <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:16,padding:"16px"}}>
-              <div style={{fontSize:15,fontWeight:700,color:"#ef4444",marginBottom:6}}>⚠️ Réinitialiser</div>
-              <div style={{fontSize:13,color:T.textSub,marginBottom:14}}>Recharge les données par défaut.</div>
-              <button onClick={handleReset} style={{width:"100%",padding:"14px",background:"rgba(239,68,68,0.15)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:12,color:"#ef4444",cursor:"pointer",fontSize:15,fontWeight:700}}>Réinitialiser</button>
-            </div>
-            <button onClick={()=>setShowReset(false)} style={{width:"100%",marginTop:12,padding:"14px",background:T.surface2,border:"none",borderRadius:12,color:T.textSub,cursor:"pointer",fontSize:15,fontWeight:600}}>Fermer</button>
-          </div>
-        </div>
-      )}
     </>
   );
 }
