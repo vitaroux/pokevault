@@ -599,7 +599,7 @@ function SealedView({ items, onAdd, onEdit, onDelete, T }) {
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
-function Dashboard({ data, T }) {
+function Dashboard({ data, T, onGoLiquidite }) {
   const allCards=TCGS.flatMap(t=>(data[t.id]||[]).filter(c=>!c.vendu));
   const inv=allCards.reduce((s,c)=>s+c.achat,0);
   const val=allCards.reduce((s,c)=>s+c.valeur,0);
@@ -648,13 +648,16 @@ function Dashboard({ data, T }) {
         <div style={{textAlign:"right"}}><div style={{fontSize:16,fontWeight:800,color:T.text}}>{fmt(val)}</div><div style={{fontSize:12,color:g>=0?"#22c55e":"#ef4444"}}>{g>=0?"+":""}{fmt(g)}</div></div>
       </div>):null})()}
       <div style={{fontSize:12,color:T.textSub,textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:12}}>Liquidité</div>
-      <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:18,padding:"18px 16px"}}>
+      <div onClick={()=>onGoLiquidite()} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:18,padding:"18px 16px",cursor:"pointer"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
           <div>
             <div style={{fontSize:12,color:T.textSub,marginBottom:4}}>Solde disponible</div>
             <div style={{fontSize:26,fontWeight:900,color:solde>=0?"#22c55e":"#ef4444"}}>{fmt(solde)}</div>
           </div>
-          <span style={{fontSize:32}}>💰</span>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:32}}>💰</span>
+            <span style={{fontSize:18,color:T.textSub}}>›</span>
+          </div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
           {[["Injecté",fmt(totalInjecte),"#60a5fa"],["Dépensé",fmt(totalAchats),"#ef4444"],["Récupéré",fmt(totalVentes),"#22c55e"]].map(([k,v,c])=>(
@@ -736,8 +739,9 @@ export default function App() {
           </div>
         </div>
         <div style={{padding:"0 16px",opacity:mounted?1:0,transition:"opacity 0.3s"}}>
-          {activeTab==="dashboard"&&<Dashboard data={data} T={T}/>}
+          {activeTab==="dashboard"&&<Dashboard data={data} T={T} onGoLiquidite={()=>setActiveTab("liquidite")}/>}
           {activeTcg&&<TcgView tcg={activeTcg} cards={data[activeTab]||[]} onEdit={card=>setModal({tcg:activeTab,card})} onDelete={handleDelete} T={T}/>}
+          {activeTab==="liquidite"&&<LiquiditeView data={data} onInjecter={handleInjecter} onEditInjection={handleEditInjection} onDeleteInjection={handleDeleteInjection} T={T}/>}
           {activeTab==="liquidite"&&<LiquiditeView data={data} onInjecter={handleInjecter} onEditInjection={handleEditInjection} onDeleteInjection={handleDeleteInjection} T={T}/>}
           {activeTab==="sealed"&&<SealedView items={data.sealed||[]} onAdd={handleSealedSave} onEdit={handleSealedSave} onDelete={handleSealedDelete} T={T}/>}
           {activeTab==="vendues"&&<VenduesView data={data} onRestaurer={handleRestaurer} T={T}/>}
