@@ -421,7 +421,7 @@ function LiquiditeView({ data, onInjecter, onEditInjection, onDeleteInjection, T
           </div>
         ))}
       </div>
-      <div style={{fontSize:13,color:T.textSub,fontWeight:600,letterSpacing:"-0.2px",marginBottom:10,paddingLeft:4}}>Historique</div>
+      <div style={{fontSize:12,color:T.textSub,fontWeight:600,letterSpacing:"-0.2px",marginBottom:8,paddingLeft:2}}>Historique</div>
       {historique.length===0?<div style={{textAlign:"center",padding:"30px",color:T.textSub,fontSize:13}}>Aucun mouvement</div>:(
         <div style={{background:T.surface,borderRadius:18,overflow:"hidden",boxShadow:T.shadow}}>
           {historique.slice(0,30).map((h,i)=>{
@@ -618,34 +618,34 @@ function Dashboard({ data, T, onGoLiquidite }) {
 
         </div>
       </div>
-      <div style={{fontSize:13,color:T.textSub,fontWeight:600,letterSpacing:"-0.2px",marginBottom:10,paddingLeft:4}}>Par TCG</div>
-      <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:6,marginBottom:22,scrollbarWidth:"none"}}>
+      <div style={{fontSize:12,color:T.textSub,fontWeight:600,letterSpacing:"-0.2px",marginBottom:8,paddingLeft:2}}>Par TCG</div>
+      <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:4,marginBottom:14,scrollbarWidth:"none"}}>
         {TCGS.map(tcg=>{
           const cards=(data[tcg.id]||[]).filter(c=>!c.vendu);
           const i=cards.reduce((s,c)=>s+c.achat,0);
           const v=cards.reduce((s,c)=>s+c.valeur,0);
           return (
-            <div key={tcg.id} style={{flexShrink:0,width:148,background:T.surface,borderRadius:18,padding:"16px 14px",borderTop:`3px solid ${tcg.color}`,boxShadow:T.shadow}}>
-              <div style={{fontSize:13,fontWeight:700,color:tcg.color,marginBottom:10}}>{tcg.icon} {tcg.label}</div>
-              <div style={{fontSize:11,color:T.textSub,marginBottom:2}}>Investi</div>
-              <div style={{fontSize:17,fontWeight:900,color:T.text,marginBottom:4}}>{fmt(i)}</div>
+            <div key={tcg.id} style={{flexShrink:0,width:148,background:T.surface,borderRadius:16,padding:"12px 12px",borderTop:`3px solid ${tcg.color}`,boxShadow:T.shadow}}>
+              <div style={{fontSize:12,fontWeight:700,color:tcg.color,marginBottom:8}}>{tcg.icon} {tcg.label}</div>
+              <div style={{fontSize:11,color:T.textSub,marginBottom:1}}>Investi</div>
+              <div style={{fontSize:16,fontWeight:700,color:T.text,marginBottom:2}}>{fmt(i)}</div>
               <div style={{fontSize:13,color:(v-i)>=0?"#22c55e":"#ef4444",marginBottom:4}}>{(v-i)>=0?"+":""}{fmt(v-i)}</div>
               <div style={{fontSize:11,color:T.textSub}}>{cards.length} carte{cards.length>1?"s":""}</div>
             </div>
           );
         })}
       </div>
-      <div style={{fontSize:13,color:T.textSub,fontWeight:600,letterSpacing:"-0.2px",marginBottom:10,paddingLeft:4}}>Scellé</div>
-      {(()=>{const si=data.sealed||[];const inv=si.reduce((s,i)=>s+i.achat*i.qty,0);const val=si.reduce((s,i)=>s+i.valeur*i.qty,0);const g=val-inv;return si.length>0?(<div style={{background:T.surface,borderRadius:18,padding:"14px 16px",marginBottom:20,display:"flex",alignItems:"center",gap:16,boxShadow:T.shadow}}>
+      <div style={{fontSize:12,color:T.textSub,fontWeight:600,letterSpacing:"-0.2px",marginBottom:8,paddingLeft:2}}>Scellé</div>
+      {(()=>{const si=data.sealed||[];const inv=si.reduce((s,i)=>s+i.achat*i.qty,0);const val=si.reduce((s,i)=>s+i.valeur*i.qty,0);const g=val-inv;return si.length>0?(<div style={{background:T.surface,borderRadius:18,padding:"14px 16px",marginBottom:20,display:"flex",alignItems:"center",gap:12,boxShadow:T.shadow}}>
         <span style={{fontSize:28}}>📦</span>
         <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700,color:T.text,marginBottom:4}}>{si.length} produit{si.length>1?"s":""}</div><div style={{fontSize:12,color:T.textSub}}>Investi : {fmt(inv)}</div></div>
         <div style={{textAlign:"right"}}><div style={{fontSize:16,fontWeight:800,color:T.text}}>{fmt(val)}</div><div style={{fontSize:12,color:g>=0?"#22c55e":"#ef4444"}}>{g>=0?"+":""}{fmt(g)}</div></div>
       </div>):null})()}
-      <div style={{fontSize:13,color:T.textSub,fontWeight:600,letterSpacing:"-0.2px",marginBottom:10,paddingLeft:4}}>Liquidité</div>
-      <div onClick={()=>onGoLiquidite()} style={{background:T.surface,borderRadius:18,padding:"18px 16px",cursor:"pointer",boxShadow:T.shadowMd}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+      <div style={{fontSize:12,color:T.textSub,fontWeight:600,letterSpacing:"-0.2px",marginBottom:8,paddingLeft:2}}>Liquidité</div>
+      <div onClick={()=>onGoLiquidite()} style={{background:T.surface,borderRadius:16,padding:"14px 16px",cursor:"pointer",boxShadow:T.shadowMd}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
           <div>
-            <div style={{fontSize:12,color:T.textSub,marginBottom:4}}>Solde disponible</div>
+            <div style={{fontSize:11,color:T.textSub,marginBottom:2}}>Solde disponible</div>
             <div style={{fontSize:26,fontWeight:900,color:solde>=0?"#22c55e":"#ef4444"}}>{fmt(solde)}</div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -727,7 +727,7 @@ export default function App() {
       `}</style>
       <div style={{minHeight:"100dvh",background:T.bg,fontFamily:"-apple-system,'SF Pro Display','Inter',sans-serif",color:T.text,paddingBottom:90}}>
         {/* HEADER */}
-        <div style={{padding:"56px 20px 0px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{padding:"48px 16px 0px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(145deg,#FF9500,#FF3B30)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,boxShadow:"0 2px 8px rgba(255,59,48,0.3)"}}>⚡</div>
             <span style={{fontSize:20,fontWeight:700,letterSpacing:"-0.5px",color:T.text}}>PokéVault</span>
@@ -741,12 +741,12 @@ export default function App() {
           </div>
         </div>
         {/* PAGE TITLE */}
-        <div style={{padding:"20px 20px 16px"}}>
-          <div style={{fontSize:32,fontWeight:700,letterSpacing:"-0.8px",color:T.text}}>
+        <div style={{padding:"10px 16px 10px"}}>
+          <div style={{fontSize:26,fontWeight:700,letterSpacing:"-0.8px",color:T.text}}>
             {activeTab==="dashboard"?"Vue d'ensemble":activeTab==="liquidite"?"Liquidité":activeTab==="vendues"?"Cartes vendues":activeTab==="sealed"?"Produits scellés":activeTcg?.label}
           </div>
         </div>
-        <div style={{padding:"0 16px",opacity:mounted?1:0,transition:"opacity 0.4s"}}>
+        <div style={{padding:"0 12px",opacity:mounted?1:0,transition:"opacity 0.4s"}}>
           {activeTab==="dashboard"&&<Dashboard data={data} T={T} onGoLiquidite={()=>setActiveTab("liquidite")}/>}
           {activeTcg&&<TcgView tcg={activeTcg} cards={data[activeTab]||[]} onEdit={card=>setModal({tcg:activeTab,card})} onDelete={handleDelete} T={T}/>}
           {activeTab==="liquidite"&&<LiquiditeView data={data} onInjecter={handleInjecter} onEditInjection={handleEditInjection} onDeleteInjection={handleDeleteInjection} T={T}/>}
