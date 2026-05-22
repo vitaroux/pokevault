@@ -105,7 +105,7 @@ function CardImage({ card, tcg, T, style }) {
   return (
     <div style={{position:"relative",borderRadius:12,overflow:"hidden",background:T.isDark?"#2C2C2E":"#F2F2F7",display:"flex",alignItems:"center",justifyContent:"center",...style}}>
       {loading&&<div style={{color:T.textSub,fontSize:11}}>...</div>}
-      {!loading&&displayed&&<img src={displayed} alt={card.name} style={{width:"100%",height:"100%",objectFit:"contain"}} onError={()=>setAutoImg(null)}/>}
+      {!loading&&displayed&&<img src={displayed} alt={card.name} style={{width:"100%",height:"100%",objectFit:"contain"}} onError={e=>{e.target.style.display="none";}}/>}
       {!loading&&!displayed&&<div style={{textAlign:"center",color:T.textSub,fontSize:20}}>🃏</div>}
       <div style={{position:"absolute",bottom:4,right:4,display:"flex",gap:4}}>
         <label style={{width:24,height:24,borderRadius:6,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12}}>
