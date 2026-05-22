@@ -144,6 +144,11 @@ function CardImage({ card, tcg, T, style, hideControls, externalImg, onImgChange
   },[card.id]);
 
   const displayed=customImg||autoImg;
+  // DEBUG
+  useEffect(()=>{
+    const all=loadImages();
+    console.log("CardImage mount - card.id:", card.id, "type:", typeof card.id, "keys:", Object.keys(all), "found:", all[card.id]||all[String(card.id)]?"YES":"NO");
+  },[]);
   function handleUpload(e){const file=e.target.files?.[0];if(!file)return;const r=new FileReader();r.onload=ev=>{saveImage(card.id,ev.target.result);setCustomImg(ev.target.result);setLoading(false);};r.readAsDataURL(file);}
   function handleReset(e){e.stopPropagation();deleteImage(card.id);setCustomImg(null);}
   return (
@@ -220,25 +225,18 @@ function CardGridItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
   const gain=card.valeur-card.achat;
   const gainPct=parseFloat(pct(card.achat,card.valeur));
   const up=gain>=0;
-  const sc=card.statut.includes("PSA 10")||card.statut.includes("Pristine")?"#22c55e":card.statut.includes("PSA 9")||card.statut.includes("AFG")?"#f59e0b":card.statut.includes("transit")||card.statut.includes("Retour")?"#f97316":"#94a3b8";
   return (
-    <div style={{borderRadius:16,overflow:"hidden",background:T.surface,boxShadow:T.shadow,position:"relative"}}>
-      <div onClick={()=>setOpen(!open)} style={{cursor:"pointer"}}>
-        <CardImage card={card} tcg={tcg} T={T} style={{height:160,borderRadius:0}} externalImg={cardImg} onImgChange={setCardImg}/>
-        <div style={{padding:"10px 10px 12px"}}>
-          <div style={{fontSize:12,fontWeight:700,color:T.text,marginBottom:6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{card.name}</div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-            <span style={{fontSize:10,color:T.textSub}}>Achat</span>
-            <span style={{fontSize:12,fontWeight:700,color:T.text}}>{fmt(card.achat)}</span>
-          </div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-            <span style={{fontSize:10,color:T.textSub}}>Actuel</span>
-            <span style={{fontSize:12,fontWeight:700,color:up?"#22c55e":"#ef4444"}}>{fmt(card.valeur)}</span>
-          </div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:sc+"20",color:sc,fontWeight:700,border:`1px solid ${sc}30`}}>{card.statut}</span>
-            <span style={{fontSize:12,fontWeight:800,color:up?"#22c55e":"#ef4444"}}>{up?"+":""}{gainPct}%</span>
-          </div>
+    <div style={{borderRadius:14,overflow:"hidden",background:T.isDark?"#1C1C1E":"#e5e5ea",position:"relative",aspectRatio:"2/3"}}>
+      <div onClick={()=>setOpen(!open)} style={{cursor:"pointer",height:"100%",position:"relative"}}>
+        <CardImage card={card} tcg={tcg} T={T} style={{position:"absolute",inset:0,borderRadius:0,height:"100%",width:"100%"}} externalImg={cardImg} onImgChange={setCardImg}/>
+        {/* Price overlay bottom */}
+        <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"20px 8px 8px",background:"linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)"}}>
+          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.8)",marginBottom:1}}>{fmt(card.achat)}</div>
+          <div style={{fontSize:13,fontWeight:800,color:up?"#30D158":"#FF453A"}}>{fmt(card.valeur)}</div>
+        </div>
+        {/* % badge top right */}
+        <div style={{position:"absolute",top:6,right:6,background:up?"rgba(48,209,88,0.9)":"rgba(255,69,58,0.9)",borderRadius:8,padding:"2px 7px"}}>
+          <span style={{fontSize:11,fontWeight:800,color:"#fff"}}>{up?"+":""}{gainPct}%</span>
         </div>
       </div>
       {open&&(
@@ -380,7 +378,7 @@ function TcgView({ tcg, cards, onEdit, onDelete, T }) {
           <div style={{fontSize:14}}>Appuie sur + pour en ajouter</div>
         </div>
       ):viewMode==="grid"?(
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
           {actives.map(card=><CardGridItem key={card.id} card={card} tcg={tcg.id} tcgColor={tcg.color} onEdit={onEdit} onDelete={onDelete} T={T}/>)}
         </div>
       ):(
