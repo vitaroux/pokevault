@@ -37,6 +37,23 @@ async function fetchPokemonImage(name) {
   } catch { return null; }
 }
 const dateStr = () => new Date().toLocaleDateString("fr-FR");
+
+function RenderNotes({ notes }) {
+  if (!notes) return null;
+  const parts = notes.split(/(https?:\/\/[^\s]+)/);
+  return (
+    <span>
+      {parts.map((part, i) =>
+        part.startsWith("http")
+          ? <span key={i} onClick={e=>{e.stopPropagation();window.open(part,"_blank");}}
+              style={{color:"#007AFF",textDecoration:"underline",wordBreak:"break-all",cursor:"pointer",display:"inline-block",padding:"2px 0"}}>
+              {part}
+            </span>
+          : <span key={i}>{part}</span>
+      )}
+    </span>
+  );
+}
 const fmt = (n) => (n??0).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+"€";
 const pct = (a,b) => a===0?"0.0":((b-a)/a*100).toFixed(1);
 const buildCMUrl = (c) => `https://www.cardmarket.com/fr/Pokemon/Products/Singles?searchString=${encodeURIComponent(c.name+" "+(c.numero||""))}&language=${{JP:"Japanese",EN:"English",FR:"French",CN:"Simplified Chinese",KR:"Korean"}[c.langue]||""}&minCondition=2`;
@@ -209,7 +226,7 @@ function CardGridItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
                 </div>
               ))}
             </div>
-            {card.notes&&<div style={{fontSize:13,color:T.textSub,marginBottom:12,padding:"10px 12px",background:T.surface2,borderRadius:10,fontStyle:"italic"}}>{card.notes}</div>}
+            {card.notes&&<div style={{fontSize:13,color:T.textSub,marginBottom:12,padding:"10px 12px",background:T.isDark?"#2C2C2E":"#F2F2F7",borderRadius:10}}><RenderNotes notes={card.notes}/></div>}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
               <a href={buildCMUrl(card)} target="_blank" rel="noopener noreferrer" style={{padding:"11px",background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:12,color:"#60a5fa",fontSize:12,textDecoration:"none",fontWeight:600,textAlign:"center",display:"block"}}>📊 Cardmarket</a>
               <a href={buildEbayUrl(card)} target="_blank" rel="noopener noreferrer" style={{padding:"11px",background:"rgba(234,179,8,0.1)",border:"1px solid rgba(234,179,8,0.2)",borderRadius:12,color:"#eab308",fontSize:12,textDecoration:"none",fontWeight:600,textAlign:"center",display:"block"}}>🔍 eBay vendus</a>
@@ -259,7 +276,7 @@ function CardListItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
               </div>
             ))}
           </div>
-          {card.notes&&<div style={{fontSize:13,color:T.textSub,marginBottom:12,padding:"10px 12px",background:T.surface2,borderRadius:10,fontStyle:"italic"}}>{card.notes}</div>}
+          {card.notes&&<div style={{fontSize:13,color:T.textSub,marginBottom:12,padding:"10px 12px",background:T.isDark?"#2C2C2E":"#F2F2F7",borderRadius:10}}><RenderNotes notes={card.notes}/></div>}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
             <a href={buildCMUrl(card)} target="_blank" rel="noopener noreferrer" style={{padding:"11px",background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:12,color:"#60a5fa",fontSize:12,textDecoration:"none",fontWeight:600,textAlign:"center",display:"block"}}>📊 Cardmarket</a>
             <a href={buildEbayUrl(card)} target="_blank" rel="noopener noreferrer" style={{padding:"11px",background:"rgba(234,179,8,0.1)",border:"1px solid rgba(234,179,8,0.2)",borderRadius:12,color:"#eab308",fontSize:12,textDecoration:"none",fontWeight:600,textAlign:"center",display:"block"}}>🔍 eBay vendus</a>
