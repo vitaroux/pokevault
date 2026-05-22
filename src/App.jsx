@@ -122,9 +122,11 @@ const NAV = [
 ];
 
 // ── CARD IMAGE ────────────────────────────────────────────────────────────────
-function CardImage({ card, tcg, T, style, hideControls }) {
-  const [customImg,setCustomImg] = useState(null);
-  useEffect(()=>{ const img=loadImages()[card.id]; if(img) setCustomImg(img); },[card.id]);
+function CardImage({ card, tcg, T, style, hideControls, externalImg, onImgChange }) {
+  const [_customImg,_setCustomImg] = useState(null);
+  useEffect(()=>{ const img=loadImages()[card.id]; if(img){ _setCustomImg(img); onImgChange&&onImgChange(img); } },[card.id]);
+  const customImg = externalImg !== undefined ? externalImg : _customImg;
+  const setCustomImg = (v) => { _setCustomImg(v); onImgChange&&onImgChange(v); };
   const [autoImg,setAutoImg] = useState(null);
   const [loading,setLoading] = useState(false);
   useEffect(()=>{
@@ -206,6 +208,7 @@ function CardModal({ tcg, card, onSave, onClose, T }) {
 // ── CARD GRID ITEM ────────────────────────────────────────────────────────────
 function CardGridItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
   const [open,setOpen]=useState(false);
+  const [cardImg,setCardImg]=useState(()=>loadImages()[card.id]||null);
   const gain=card.valeur-card.achat;
   const gainPct=parseFloat(pct(card.achat,card.valeur));
   const up=gain>=0;
@@ -213,7 +216,7 @@ function CardGridItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
   return (
     <div style={{borderRadius:16,overflow:"hidden",background:T.surface,boxShadow:T.shadow,position:"relative"}}>
       <div onClick={()=>setOpen(!open)} style={{cursor:"pointer"}}>
-        <CardImage card={card} tcg={tcg} T={T} style={{height:160,borderRadius:0}}/>
+        <CardImage card={card} tcg={tcg} T={T} style={{height:160,borderRadius:0}} externalImg={cardImg} onImgChange={setCardImg}/>
         <div style={{padding:"10px 10px 12px"}}>
           <div style={{fontSize:12,fontWeight:700,color:T.text,marginBottom:6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{card.name}</div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
