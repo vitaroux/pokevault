@@ -28,10 +28,26 @@ function loadTheme() { try { return localStorage.getItem(THEME_KEY)||"light"; } 
 function loadImages() { try { return JSON.parse(localStorage.getItem(IMG_KEY)||"{}"); } catch { return {}; } }
 function saveImage(id,b64) { try { const i=loadImages(); i[id]=b64; localStorage.setItem(IMG_KEY,JSON.stringify(i)); } catch {} }
 function deleteImage(id) { try { const i=loadImages(); delete i[id]; localStorage.setItem(IMG_KEY,JSON.stringify(i)); } catch {} }
+const FR_TO_EN = {
+  "noctali":"umbreon","dracaufeu":"charizard","ectoplasma":"gengar","pikachu":"pikachu",
+  "ronflex":"snorlax","mewtwo":"mewtwo","lokhlass":"lapras","tortank":"blastoise",
+  "florizarre":"venusaur","mew":"mew","lugia":"lugia","ho-oh":"ho-oh","raichu":"raichu",
+  "evoli":"eevee","aquali":"vaporeon","pyroli":"flareon","voltali":"jolteon",
+  "mentali":"espeon","givrali":"glaceon","phyllali":"leafeon","nymphali":"sylveon",
+  "sulfura":"moltres","artikodin":"articuno","électhor":"zapdos","meganium":"meganium",
+  "typhlosion":"typhlosion","aligatueur":"feraligatr","latias":"latias","latios":"latios",
+  "reshiram":"reshiram","zekrom":"zekrom","darkrai":"darkrai","mimiqui":"mimikyu",
+  "dracaufeu":"charizard","dracovish":"dracovish","dracolosse":"dragonite",
+};
+
 async function fetchPokemonImage(name) {
   try {
-    const clean=name.toLowerCase().replace(/&/g," ").replace(/gx|ex|vmax|vstar|\bv\b/gi,"").replace(/tag team/gi,"").replace(/sa|sr|rr|hr/gi,"").replace(/psa.*|cgc.*|afg.*/gi,"").replace(/\s+/g," ").trim().split(" ")[0];
-    const res=await fetch(`https://api.pokemontcg.io/v2/cards?q=name:${encodeURIComponent(clean)}&pageSize=1&orderBy=-set.releaseDate`);
+    const raw = name.toLowerCase()
+      .replace(/&/g," ").replace(/gx|ex|vmax|vstar|\bv\b/gi,"")
+      .replace(/tag team/gi,"").replace(/sa|sr|rr|hr/gi,"")
+      .replace(/psa.*|cgc.*|afg.*/gi,"").replace(/\s+/g," ").trim().split(" ")[0];
+    const clean = FR_TO_EN[raw] || raw;
+    const res=await fetch(\`https://api.pokemontcg.io/v2/cards?q=name:\${encodeURIComponent(clean)}&pageSize=1&orderBy=-set.releaseDate\`);
     const d=await res.json();
     return d.data?.[0]?.images?.large||d.data?.[0]?.images?.small||null;
   } catch { return null; }
@@ -107,7 +123,8 @@ const NAV = [
 
 // ── CARD IMAGE ────────────────────────────────────────────────────────────────
 function CardImage({ card, tcg, T, style, hideControls }) {
-  const [customImg,setCustomImg] = useState(()=>loadImages()[card.id]||null);
+  const [customImg,setCustomImg] = useState(null);
+  useEffect(()=>{ const img=loadImages()[card.id]; if(img) setCustomImg(img); },[card.id]);
   const [autoImg,setAutoImg] = useState(null);
   const [loading,setLoading] = useState(false);
   useEffect(()=>{
