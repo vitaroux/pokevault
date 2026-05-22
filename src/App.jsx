@@ -319,9 +319,7 @@ function TcgView({ tcg, cards, onEdit, onDelete, T }) {
       </div>
       {inv>0&&(
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,padding:"10px 14px",background:T.surface,borderRadius:14,boxShadow:T.shadow}}>
-          <span style={{fontSize:18}}>{roi>=0?"📈":"📉"}</span>
-          <span style={{fontSize:14,fontWeight:800,color:roi>=0?"#22c55e":"#ef4444"}}>ROI {roi>=0?"+":""}{roi}%</span>
-          <span style={{fontSize:12,color:T.textSub,marginLeft:"auto"}}>{actives.length} carte{actives.length>1?"s":""}</span>
+          <span style={{fontSize:12,color:T.textSub}}>{actives.length} carte{actives.length>1?"s":""}</span>
           {/* Sort */}
           <div style={{position:"relative"}}>
             <button onClick={()=>setShowSort(s=>!s)} style={{padding:"4px 10px",borderRadius:8,fontSize:12,border:`1px solid ${T.border}`,cursor:"pointer",background:T.surface2,color:T.textSub,fontFamily:"inherit",display:"flex",alignItems:"center",gap:4}}>
