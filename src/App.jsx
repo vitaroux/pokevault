@@ -125,8 +125,8 @@ function CardImage({ card, tcg, T, style }) {
 
 // ── CARD MODAL ────────────────────────────────────────────────────────────────
 function CardModal({ tcg, card, onSave, onClose, T }) {
-  const empty={name:"",numero:"",set:"",langue:"JP",statut:"Raw NM",achat:"",valeur:"",surLiquidite:true,vendu:false,prixVente:"",notes:""};
-  const [form,setForm]=useState(card?{...card,prixVente:card.prixVente||""}:empty);
+  const empty={name:"",numero:"",set:"",langue:"JP",statut:"Raw NM",achat:"",valeur:"",surLiquidite:true,vendu:false,prixVente:"",notes:"",_tcg:tcg};
+  const [form,setForm]=useState(card?{...card,prixVente:card.prixVente||"",_tcg:card._tcg||tcg}:empty);
   const s=(k,v)=>setForm(p=>({...p,[k]:v}));
   const valid=form.name&&form.achat&&form.valeur;
   const inp={background:T.inputBg,border:`1px solid ${T.border2}`,borderRadius:12,color:T.text,padding:"14px",fontSize:15,outline:"none",width:"100%",WebkitAppearance:"none",fontFamily:"inherit"};
@@ -145,6 +145,9 @@ function CardModal({ tcg, card, onSave, onClose, T }) {
             <select style={{...inp,cursor:"pointer"}} value={form.langue} onChange={e=>s("langue",e.target.value)}>{LANGUES.map(l=><option key={l}>{l}</option>)}</select>
             <select style={{...inp,cursor:"pointer"}} value={form.statut} onChange={e=>s("statut",e.target.value)}>{STATUTS.map(st=><option key={st}>{st}</option>)}</select>
           </div>
+          <select style={{...inp,cursor:"pointer"}} value={form._tcg||tcg} onChange={e=>s("_tcg",e.target.value)}>
+            {TCGS.map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
+          </select>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <input style={inp} type="number" placeholder="Prix achat €" value={form.achat} onChange={e=>s("achat",e.target.value)}/>
             <input style={inp} type="number" placeholder="Valeur actuelle €" value={form.valeur} onChange={e=>s("valeur",e.target.value)}/>
@@ -162,7 +165,7 @@ function CardModal({ tcg, card, onSave, onClose, T }) {
         </div>
         <div style={{display:"flex",gap:10,marginTop:18}}>
           <button onClick={onClose} style={{flex:1,padding:"15px",background:T.surface2,border:"none",borderRadius:14,color:T.textSub,cursor:"pointer",fontSize:15,fontWeight:600,fontFamily:"inherit"}}>Annuler</button>
-          <button onClick={()=>valid&&onSave({...form,id:card?.id||Date.now(),achat:parseFloat(form.achat),valeur:parseFloat(form.valeur),prixVente:form.prixVente?parseFloat(form.prixVente):null})}
+          <button onClick={()=>valid&&onSave({...form,id:card?.id||Date.now(),achat:parseFloat(form.achat),valeur:parseFloat(form.valeur),prixVente:form.prixVente?parseFloat(form.prixVente):null,_tcg:form._tcg||tcg})}
             style={{flex:2,padding:"15px",background:valid?"linear-gradient(135deg,#f59e0b,#f97316)":T.barBg,border:"none",borderRadius:14,color:valid?"#000":T.textSub,fontWeight:800,cursor:valid?"pointer":"default",fontSize:15,fontFamily:"inherit"}}>
             {card?"Sauvegarder":"Ajouter"}
           </button>
@@ -687,16 +690,26 @@ export default function App() {
   useEffect(()=>{try{localStorage.setItem(THEME_KEY,theme);}catch{}},[theme]);
 
   function handleSave(card) {
-    const tcg=activeTab;
+    const sourceTcg = activeTab;
+    const targetTcg = card._tcg || sourceTcg;
     setData(prev=>{
-      const list=prev[tcg]||[];
-      const exists=list.find(c=>c.id===card.id);
-      const newList=exists?list.map(c=>c.id===card.id?card:c):[...list,card];
+      let nd = {...prev};
+      const sourceList = prev[sourceTcg]||[];
+      const exists = sourceList.find(c=>c.id===card.id);
+      const wasVendu = exists?.vendu;
+      if(exists && targetTcg !== sourceTcg) {
+        // Move card to new TCG
+        nd[sourceTcg] = sourceList.filter(c=>c.id!==card.id);
+        nd[targetTcg] = [...(prev[targetTcg]||[]), card];
+      } else if(exists) {
+        nd[sourceTcg] = sourceList.map(c=>c.id===card.id?card:c);
+      } else {
+        nd[targetTcg] = [...(prev[targetTcg]||[]), card];
+      }
       let hist=[...(prev.liquidite?.historique||[])];
-      const wasVendu=exists?.vendu;
       if(!exists&&card.surLiquidite) hist.push({type:"achat",montant:card.achat,label:`Achat : ${card.name}`,date:dateStr()});
       if(!wasVendu&&card.vendu&&card.prixVente&&card.surLiquidite) hist.push({type:"vente",montant:card.prixVente,label:`Vente : ${card.name}`,date:dateStr()});
-      return {...prev,[tcg]:newList,liquidite:{...prev.liquidite,historique:hist}};
+      return {...nd,liquidite:{...prev.liquidite,historique:hist}};
     });
     setModal(null);
   }
