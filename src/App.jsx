@@ -106,7 +106,7 @@ const NAV = [
 ];
 
 // ── CARD IMAGE ────────────────────────────────────────────────────────────────
-function CardImage({ card, tcg, T, style }) {
+function CardImage({ card, tcg, T, style, hideControls }) {
   const [customImg,setCustomImg] = useState(()=>loadImages()[card.id]||null);
   const [autoImg,setAutoImg] = useState(null);
   const [loading,setLoading] = useState(false);
@@ -252,7 +252,7 @@ function CardListItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
   return (
     <div style={{marginBottom:10,borderRadius:16,overflow:"hidden",background:T.surface,boxShadow:open?T.shadowMd:T.shadow,transition:"box-shadow 0.2s"}}>
       <div onClick={()=>setOpen(!open)} style={{padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
-        <CardImage card={card} tcg={tcg} T={T} style={{width:48,height:64,borderRadius:8,flexShrink:0}}/>
+        <CardImage card={card} tcg={tcg} T={T} style={{width:48,height:64,borderRadius:8,flexShrink:0}} hideControls={true}/>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{card.name}</div>
           <span style={{fontSize:11,padding:"2px 7px",borderRadius:6,background:sc+"20",color:sc,fontWeight:700,border:`1px solid ${sc}30`}}>{card.statut}</span>
