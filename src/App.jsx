@@ -293,7 +293,7 @@ function CardListItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
 
 // ── TCG VIEW ──────────────────────────────────────────────────────────────────
 function TcgView({ tcg, cards, onEdit, onDelete, T }) {
-  const [viewMode,setViewMode]=useState("list");
+  const [viewMode,setViewMode]=useState("grid");
   const [sort,setSort]=useState("achat-desc");
   const [showSort,setShowSort]=useState(false);
   const actives=[...cards.filter(c=>!c.vendu)].sort((a,b)=>{
