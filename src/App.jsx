@@ -123,20 +123,27 @@ const NAV = [
 
 // ── CARD IMAGE ────────────────────────────────────────────────────────────────
 function CardImage({ card, tcg, T, style, hideControls, externalImg, onImgChange }) {
-  const [_customImg,_setCustomImg] = useState(null);
-  useEffect(()=>{ const img=loadImages()[card.id]; if(img){ _setCustomImg(img); onImgChange&&onImgChange(img); } },[card.id]);
-  const customImg = externalImg !== undefined ? externalImg : _customImg;
-  const setCustomImg = (v) => { _setCustomImg(v); onImgChange&&onImgChange(v); };
+  const [localImg,setLocalImg] = useState(()=>loadImages()[card.id]||null);
   const [autoImg,setAutoImg] = useState(null);
   const [loading,setLoading] = useState(false);
+
+  // Sync external changes back to local
+  useEffect(()=>{ if(externalImg!==undefined) setLocalImg(externalImg); },[externalImg]);
+
+  const customImg = localImg;
+  const setCustomImg = (v) => { setLocalImg(v); onImgChange&&onImgChange(v); };
+
   useEffect(()=>{
-    if(!customImg&&tcg==="pokemon"){
+    const saved = loadImages()[card.id];
+    if(saved){ setLocalImg(saved); onImgChange&&onImgChange(saved); return; }
+    if(tcg==="pokemon"){
       setLoading(true);
       fetchPokemonImage(card.name).then(url=>{setAutoImg(url);setLoading(false);});
     }
   },[card.id]);
+
   const displayed=customImg||autoImg;
-  function handleUpload(e){const file=e.target.files?.[0];if(!file)return;const r=new FileReader();r.onload=ev=>{saveImage(card.id,ev.target.result);setCustomImg(ev.target.result);};r.readAsDataURL(file);}
+  function handleUpload(e){const file=e.target.files?.[0];if(!file)return;const r=new FileReader();r.onload=ev=>{saveImage(card.id,ev.target.result);setCustomImg(ev.target.result);setLoading(false);};r.readAsDataURL(file);}
   function handleReset(e){e.stopPropagation();deleteImage(card.id);setCustomImg(null);}
   return (
     <div style={{position:"relative",borderRadius:12,overflow:"hidden",background:T.isDark?"#2C2C2E":"#F2F2F7",display:"flex",alignItems:"center",justifyContent:"center",...style}}>
