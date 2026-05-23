@@ -47,7 +47,7 @@ async function fetchPokemonImage(name) {
       .replace(/tag team/gi,"").replace(/sa|sr|rr|hr/gi,"")
       .replace(/psa.*|cgc.*|afg.*/gi,"").replace(/\s+/g," ").trim().split(" ")[0];
     const clean = FR_TO_EN[raw] || raw;
-    const res=await fetch(\`https://api.pokemontcg.io/v2/cards?q=name:\${encodeURIComponent(clean)}&pageSize=1&orderBy=-set.releaseDate\`);
+    const res=await fetch(`https://api.pokemontcg.io/v2/cards?q=name:${encodeURIComponent(clean)}&pageSize=1&orderBy=-set.releaseDate`);
     const d=await res.json();
     return d.data?.[0]?.images?.large||d.data?.[0]?.images?.small||null;
   } catch { return null; }
