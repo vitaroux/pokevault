@@ -122,47 +122,15 @@ const NAV = [
 ];
 
 // ── CARD IMAGE ────────────────────────────────────────────────────────────────
-function CardImage({ card, T, style, hideControls }) {
-  const [img, setImg] = useState(null);
-
-  useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem(IMG_KEY) || "{}");
-      const found = stored[String(card.id)];
-      if (found) setImg(found);
-    } catch {}
-  }, [card.id]);
-
-  function handleUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const b64 = ev.target.result;
-      try {
-        const stored = JSON.parse(localStorage.getItem(IMG_KEY) || "{}");
-        stored[String(card.id)] = b64;
-        localStorage.setItem(IMG_KEY, JSON.stringify(stored));
-      } catch {}
-      setImg(b64);
-    };
-    reader.readAsDataURL(file);
-  }
-
+function CardImage({ card, T, style, hideControls, img }) {
   return (
-    <div style={{ position: "relative", background: T.isDark ? "#2C2C2E" : "#E5E5EA", display: "flex", alignItems: "center", justifyContent: "center", ...style }}>
+    <div style={{ position: "relative", background: T.isDark ? "#2C2C2E" : "#E5E5EA", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", ...style }}>
       {img
         ? <img src={img} alt={card.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-        : <div style={{ textAlign: "center", color: T.textSub, padding: 8 }}>
-            <div style={{ fontSize: 28, marginBottom: 4 }}>🃏</div>
-            {!hideControls && <div style={{ fontSize: 10, color: T.textSub }}>Ajouter une photo</div>}
+        : <div style={{ textAlign: "center", color: T.textSub }}>
+            <div style={{ fontSize: 28 }}>🃏</div>
           </div>
       }
-      {!hideControls && (
-        <label style={{ position: "absolute", bottom: 6, right: 6, width: 28, height: 28, borderRadius: 8, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 14 }}>
-          📷<input type="file" accept="image/*" style={{ display: "none" }} onChange={handleUpload} />
-        </label>
-      )}
     </div>
   );
 }
@@ -221,7 +189,7 @@ function CardModal({ tcg, card, onSave, onClose, T }) {
 }
 
 // ── CARD GRID ITEM ────────────────────────────────────────────────────────────
-function CardGridItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
+function CardGridItem({ card, tcg, tcgColor, onEdit, onDelete, T, img }) {
   const [open,setOpen]=useState(false);
   const gain=card.valeur-card.achat;
   const gainPct=parseFloat(pct(card.achat,card.valeur));
@@ -229,7 +197,7 @@ function CardGridItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
   return (
     <div style={{borderRadius:14,overflow:"hidden",background:T.isDark?"#1C1C1E":"#e5e5ea",position:"relative",aspectRatio:"2/3"}}>
       <div onClick={()=>setOpen(!open)} style={{cursor:"pointer",height:"100%",position:"relative"}}>
-        <CardImage card={card} tcg={tcg} T={T} style={{position:"absolute",inset:0,borderRadius:0,height:"100%",width:"100%"}} hideControls={true}/>
+        <CardImage card={card} tcg={tcg} T={T} style={{position:"absolute",inset:0,borderRadius:0,height:"100%",width:"100%"}} hideControls={true} img={img}/>
         {/* Price overlay bottom */}
         <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"20px 8px 8px",background:"linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)"}}>
           <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.8)",marginBottom:1}}>{fmt(card.achat)}</div>
@@ -270,7 +238,7 @@ function CardGridItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
 }
 
 // ── CARD LIST ITEM ────────────────────────────────────────────────────────────
-function CardListItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
+function CardListItem({ card, tcg, tcgColor, onEdit, onDelete, T, img, onUpload }) {
   const [open,setOpen]=useState(false);
   const gain=card.valeur-card.achat;
   const gainPct=parseFloat(pct(card.achat,card.valeur));
@@ -279,7 +247,7 @@ function CardListItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
   return (
     <div style={{marginBottom:10,borderRadius:16,overflow:"hidden",background:T.surface,boxShadow:open?T.shadowMd:T.shadow,transition:"box-shadow 0.2s"}}>
       <div onClick={()=>setOpen(!open)} style={{padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
-        <CardImage card={card} tcg={tcg} T={T} style={{width:48,height:64,borderRadius:8,flexShrink:0}} hideControls={true}/>
+        <CardImage card={card} tcg={tcg} T={T} style={{width:48,height:64,borderRadius:8,flexShrink:0}} hideControls={true} img={img}/>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{card.name}</div>
           <span style={{fontSize:11,padding:"2px 7px",borderRadius:6,background:sc+"20",color:sc,fontWeight:700,border:`1px solid ${sc}30`}}>{card.statut}</span>
@@ -311,10 +279,7 @@ function CardListItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
               <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
                 const file=e.target.files?.[0]; if(!file) return;
                 const r=new FileReader();
-                r.onload=ev=>{
-                  try{ const s=JSON.parse(localStorage.getItem(IMG_KEY)||"{}"); s[String(card.id)]=ev.target.result; localStorage.setItem(IMG_KEY,JSON.stringify(s)); }catch{}
-                  e.target.closest("label").querySelector("span") && (e.target.closest("label").querySelector("span").textContent="✅ Photo");
-                };
+                r.onload=ev=>{ onUpload&&onUpload(card.id, ev.target.result); };
                 r.readAsDataURL(file);
               }}/>
             </label>
@@ -330,7 +295,7 @@ function CardListItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
 }
 
 // ── TCG VIEW ──────────────────────────────────────────────────────────────────
-function TcgView({ tcg, cards, onEdit, onDelete, T }) {
+function TcgView({ tcg, cards, onEdit, onDelete, T, images, onUpload }) {
   const [viewMode,setViewMode]=useState("grid");
   const [sort,setSort]=useState("achat-desc");
   const [showSort,setShowSort]=useState(false);
@@ -391,10 +356,10 @@ function TcgView({ tcg, cards, onEdit, onDelete, T }) {
         </div>
       ):viewMode==="grid"?(
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-          {actives.map(card=><CardGridItem key={card.id} card={card} tcg={tcg.id} tcgColor={tcg.color} onEdit={onEdit} onDelete={onDelete} T={T}/>)}
+          {actives.map(card=><CardGridItem key={card.id} card={card} tcg={tcg.id} tcgColor={tcg.color} onEdit={onEdit} onDelete={onDelete} T={T} img={images?.[String(card.id)]}/>)}
         </div>
       ):(
-        actives.map(card=><CardListItem key={card.id} card={card} tcg={tcg.id} tcgColor={tcg.color} onEdit={onEdit} onDelete={onDelete} T={T}/>)
+        actives.map(card=><CardListItem key={card.id} card={card} tcg={tcg.id} tcgColor={tcg.color} onEdit={onEdit} onDelete={onDelete} T={T} img={images?.[String(card.id)]} onUpload={onUpload}/>)
       )}
     </div>
   );
@@ -804,7 +769,7 @@ export default function App() {
         </div>
         <div style={{padding:"0 12px",opacity:mounted?1:0,transition:"opacity 0.4s"}}>
           {activeTab==="dashboard"&&<Dashboard data={data} T={T} onGoLiquidite={()=>setActiveTab("liquidite")}/>}
-          {activeTcg&&<TcgView tcg={activeTcg} cards={data[activeTab]||[]} onEdit={card=>setModal({tcg:activeTab,card})} onDelete={handleDelete} T={T}/>}
+          {activeTcg&&<TcgView tcg={activeTcg} cards={data[activeTab]||[]} onEdit={card=>setModal({tcg:activeTab,card})} onDelete={handleDelete} T={T} images={images} onUpload={handleUploadImage}/>}
           {activeTab==="liquidite"&&<LiquiditeView data={data} onInjecter={handleInjecter} onEditInjection={handleEditInjection} onDeleteInjection={handleDeleteInjection} T={T}/>}
           {activeTab==="sealed"&&<SealedView items={data.sealed||[]} onAdd={handleSealedSave} onEdit={handleSealedSave} onDelete={handleSealedDelete} T={T}/>}
           {activeTab==="vendues"&&<VenduesView data={data} onRestaurer={handleRestaurer} T={T}/>}
