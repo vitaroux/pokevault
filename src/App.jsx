@@ -228,7 +228,7 @@ function CardGridItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
   return (
     <div style={{borderRadius:14,overflow:"hidden",background:T.isDark?"#1C1C1E":"#e5e5ea",position:"relative",aspectRatio:"2/3"}}>
       <div onClick={()=>setOpen(!open)} style={{cursor:"pointer",height:"100%",position:"relative"}}>
-        <CardImage card={card} tcg={tcg} T={T} style={{position:"absolute",inset:0,borderRadius:0,height:"100%",width:"100%"}} externalImg={cardImg} onImgChange={setCardImg}/>
+        <CardImage card={card} tcg={tcg} T={T} style={{position:"absolute",inset:0,borderRadius:0,height:"100%",width:"100%"}} externalImg={cardImg} onImgChange={setCardImg} hideControls={true}/>
         {/* Price overlay bottom */}
         <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"20px 8px 8px",background:"linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)"}}>
           <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.8)",marginBottom:1}}>{fmt(card.achat)}</div>
