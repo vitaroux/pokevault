@@ -3,9 +3,6 @@ import { useState, useEffect } from "react";
 const STORAGE_KEY = "pokevault-v5";
 const THEME_KEY = "pokevault-theme";
 const IMG_KEY = "pokevault-images";
-import { POKEBALL_ICON } from "./pokeball.js";
-import { OP_ICON } from "./op.js";
-import { DBZ_ICON } from "./dbz.js";
 
 const defaultData = {
   pokemon: [],
@@ -108,15 +105,15 @@ const THEMES = {
 const STATUTS = ["Raw NM","Raw LP","PSA 10","PSA 9","PSA 8","CGC Pristine 10","CGC 10","AFG 9.5 → PSA en cours","En attente PSA","En transit","Retour initié","Sealed","Gradé","Autre"];
 const LANGUES = ["JP","EN","FR","CN","KR","Autre"];
 const TCGS = [
-  { id:"pokemon", label:"Pokémon", icon:"pokeball", color:"#f59e0b" },
-  { id:"op", label:"One Piece", icon:"op", color:"#ef4444" },
-  { id:"dbz", label:"Dragon Ball", icon:"dbz", color:"#f97316" },
+  { id:"pokemon", label:"Pokémon", icon:"🎴", color:"#f59e0b" },
+  { id:"op", label:"One Piece", icon:"☠️", color:"#ef4444" },
+  { id:"dbz", label:"Dragon Ball", icon:"🐉", color:"#f97316" },
 ];
 const NAV = [
   { id:"dashboard", icon:"⚡", label:"Accueil" },
-  { id:"pokemon", icon:"pokeball", label:"Pokémon" },
-  { id:"op", icon:"op", label:"One Piece" },
-  { id:"dbz", icon:"dbz", label:"DBZ" },
+  { id:"pokemon", icon:"🎴", label:"Pokémon" },
+  { id:"op", icon:"☠️", label:"One Piece" },
+  { id:"dbz", icon:"🐉", label:"DBZ" },
   { id:"sealed", icon:"📦", label:"Sealed" },
   { id:"vendues", icon:"✅", label:"Vendues" },
 ];
@@ -652,7 +649,7 @@ function Dashboard({ data, T, onGoLiquidite }) {
           const v=cards.reduce((s,c)=>s+c.valeur,0);
           return (
             <div key={tcg.id} style={{flexShrink:0,width:148,background:T.surface,borderRadius:16,padding:"12px 12px",borderTop:`3px solid ${tcg.color}`,boxShadow:T.shadow}}>
-              <div style={{fontSize:12,fontWeight:700,color:tcg.color,marginBottom:8,display:"flex",alignItems:"center",gap:4}}>{tcg.icon==="pokeball"?<img src={POKEBALL_ICON} style={{width:14,height:14,objectFit:"contain"}}/>:tcg.icon==="op"?<img src={OP_ICON} style={{width:14,height:14,objectFit:"contain"}}/>:tcg.icon==="dbz"?<img src={DBZ_ICON} style={{width:14,height:14,objectFit:"contain"}}/>:tcg.icon} {tcg.label}</div>
+              <div style={{fontSize:12,fontWeight:700,color:tcg.color,marginBottom:8,display:"flex",alignItems:"center",gap:4}}>{tcg.icon} {tcg.label}</div>
               <div style={{fontSize:11,color:T.textSub,marginBottom:1}}>Investi</div>
               <div style={{fontSize:16,fontWeight:700,color:T.text,marginBottom:2}}>{fmt(i)}</div>
               <div style={{fontSize:13,color:(v-i)>=0?"#22c55e":"#ef4444",marginBottom:4}}>{(v-i)>=0?"+":""}{fmt(v-i)}</div>
@@ -688,7 +685,7 @@ function Dashboard({ data, T, onGoLiquidite }) {
 }
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
-function AppInner() {
+export default function App() {
   const [data,setData]=useState(loadData);
   const [activeTab,setActiveTab]=useState("dashboard");
   const [modal,setModal]=useState(null);
@@ -782,7 +779,7 @@ function AppInner() {
           const color=active?T.accent:T.textSub;
           return (
             <button key={n.id} onClick={()=>setActiveTab(n.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,background:"none",border:"none",cursor:"pointer",padding:"8px 6px 4px",minWidth:52,position:"relative",transition:"all 0.15s"}}>
-              <span style={{fontSize:22,opacity:active?1:0.5,transition:"all 0.15s",filter:active?"none":"grayscale(0.3)",display:"flex",alignItems:"center",justifyContent:"center"}}>{n.icon==="pokeball"?<img src={POKEBALL_ICON} style={{width:22,height:22,objectFit:"contain"}}/>:n.icon==="op"?<img src={OP_ICON} style={{width:22,height:22,objectFit:"contain"}}/>:n.icon==="dbz"?<img src={DBZ_ICON} style={{width:22,height:22,objectFit:"contain"}}/>:n.icon}</span>
+              <span style={{fontSize:22,opacity:active?1:0.5,transition:"all 0.15s",filter:active?"none":"grayscale(0.3)",display:"flex",alignItems:"center",justifyContent:"center"}}>{n.icon}</span>
               <span style={{fontSize:10,fontWeight:active?600:400,color,transition:"color 0.15s",letterSpacing:"-0.2px"}}>{n.label}</span>
               {n.id==="vendues"&&nbVendues>0&&!active&&<div style={{position:"absolute",top:4,right:8,minWidth:16,height:16,borderRadius:8,background:T.accentRed,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#fff",padding:"0 3px"}}>{nbVendues}</div>}
             </button>
@@ -793,5 +790,3 @@ function AppInner() {
     </>
   );
 }
-
-export default function App() { return <ErrorBoundary><AppInner/></ErrorBoundary>; }
