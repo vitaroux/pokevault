@@ -192,8 +192,8 @@ function CardGridItem({ card, tcg, tcgColor, onEdit, onDelete, T, img }) {
   const gainPct=parseFloat(pct(card.achat,card.valeur));
   const up=gain>=0;
   return (
-    <div style={{borderRadius:14,overflow:"hidden",background:T.isDark?"#1C1C1E":"#e5e5ea",position:"relative",aspectRatio:"2/3"}}>
-      <div onClick={()=>setOpen(!open)} style={{cursor:"pointer",height:"100%",position:"relative"}}>
+    <div style={{borderRadius:14,overflow:"hidden",background:T.isDark?"#1C1C1E":"#e5e5ea",position:"relative",paddingBottom:"150%"}}>
+      <div onClick={()=>setOpen(!open)} style={{cursor:"pointer",position:"absolute",inset:0}}>
         <CardImage card={card} tcg={tcg} T={T} style={{position:"absolute",inset:0,borderRadius:0,height:"100%",width:"100%"}} hideControls={true} img={img}/>
         {/* Price overlay bottom */}
         <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"20px 8px 8px",background:"linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)"}}>
