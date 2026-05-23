@@ -306,10 +306,21 @@ function CardListItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
           {card.notes&&<div style={{fontSize:13,color:T.textSub,marginBottom:12,padding:"10px 12px",background:T.isDark?"#2C2C2E":"#F2F2F7",borderRadius:10}}><RenderNotes notes={card.notes}/></div>}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
             <a href={buildCMUrl(card)} target="_blank" rel="noopener noreferrer" style={{padding:"11px",background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:12,color:"#60a5fa",fontSize:12,textDecoration:"none",fontWeight:600,textAlign:"center",display:"block"}}>📊 Cardmarket</a>
-            <a href={buildEbayUrl(card)} target="_blank" rel="noopener noreferrer" style={{padding:"11px",background:"rgba(234,179,8,0.1)",border:"1px solid rgba(234,179,8,0.2)",borderRadius:12,color:"#eab308",fontSize:12,textDecoration:"none",fontWeight:600,textAlign:"center",display:"block"}}>🔍 eBay vendus</a>
+            <label style={{padding:"11px",background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:12,color:"#818cf8",fontSize:12,fontWeight:600,textAlign:"center",display:"block",cursor:"pointer"}}>
+              📷 Photo
+              <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
+                const file=e.target.files?.[0]; if(!file) return;
+                const r=new FileReader();
+                r.onload=ev=>{
+                  try{ const s=JSON.parse(localStorage.getItem(IMG_KEY)||"{}"); s[String(card.id)]=ev.target.result; localStorage.setItem(IMG_KEY,JSON.stringify(s)); }catch{}
+                  e.target.closest("label").querySelector("span") && (e.target.closest("label").querySelector("span").textContent="✅ Photo");
+                };
+                r.readAsDataURL(file);
+              }}/>
+            </label>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-            <button onClick={()=>onEdit(card)} style={{padding:"12px",background:T.surface2,border:`1px solid ${T.border}`,borderRadius:12,color:T.textSub,cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>✏️ Modifier</button>
+            <button onClick={()=>onEdit(card)} style={{padding:"12px",background:T.isDark?"#2C2C2E":"#F2F2F7",border:"none",borderRadius:12,color:T.textSub,cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>✏️ Modifier</button>
             <button onClick={()=>onDelete(tcg,card.id)} style={{padding:"12px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:12,color:"#ef4444",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>🗑 Supprimer</button>
           </div>
         </div>
