@@ -657,11 +657,9 @@ export default function App() {
   const [data,setData]=useState(loadData);
   const [activeTab,setActiveTab]=useState("dashboard");
   const [modal,setModal]=useState(null);
-  const [mounted,setMounted]=useState(false);
   const [theme,setTheme]=useState(loadTheme);
   const T=THEMES[theme];
 
-  useEffect(()=>{setMounted(true);},[]);
   useEffect(()=>{saveData(data);},[data]);
   useEffect(()=>{try{localStorage.setItem(THEME_KEY,theme);}catch{}},[theme]);
 
@@ -732,7 +730,7 @@ export default function App() {
             {activeTab==="dashboard"?"Vue d'ensemble":activeTab==="liquidite"?"Liquidité":activeTab==="vendues"?"Cartes vendues":activeTab==="sealed"?"Produits scellés":activeTcg?.label}
           </div>
         </div>
-        <div style={{padding:"0 12px",opacity:mounted?1:0,transition:"opacity 0.4s"}}>
+        <div style={{padding:"0 12px",opacity:1}}>
           {activeTab==="dashboard"&&<Dashboard data={data} T={T} onGoLiquidite={()=>setActiveTab("liquidite")}/>}
           {activeTcg&&<TcgView tcg={activeTcg} cards={data[activeTab]||[]} onEdit={card=>setModal({tcg:activeTab,card})} onDelete={handleDelete} T={T} images={images} onUpload={handleUploadImage}/>}
           {activeTab==="liquidite"&&<LiquiditeView data={data} onInjecter={handleInjecter} onEditInjection={handleEditInjection} onDeleteInjection={handleDeleteInjection} T={T}/>}
