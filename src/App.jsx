@@ -1,196 +1,127 @@
 import { useState, useEffect } from "react";
 
-const STORAGE_KEY = "pokevault-v5";
-const THEME_KEY = "pokevault-theme";
-const IMG_KEY = "pokevault-images";
+const STORAGE_KEY = "pokevault-v6";
+const THEME_KEY = "pokevault-theme-v2";
+const IMG_KEY = "pokevault-images-v2";
 
-const defaultData = {
-  pokemon: [],
-  op: [],
-  dbz: [],
-  sealed: [],
-  liquidite: { historique: [] },
-};
-
-function calcLiquidite(data) {
-  const all = [...(data.pokemon||[]), ...(data.op||[]), ...(data.dbz||[])];
-  const totalInjecte = (data.liquidite?.historique||[]).filter(h=>h.type==="injection").reduce((s,h)=>s+h.montant,0);
-  const totalAchats = all.filter(c=>c.surLiquidite&&!c.vendu).reduce((s,c)=>s+c.achat,0);
-  const totalVentes = all.filter(c=>c.vendu&&c.surLiquidite&&c.prixVente).reduce((s,c)=>s+c.prixVente,0);
-  return { totalInjecte, totalAchats, totalVentes, solde: totalInjecte-totalAchats+totalVentes };
-}
 function loadData() {
   try {
     const r = localStorage.getItem(STORAGE_KEY);
-    const d = r ? JSON.parse(r) : defaultData;
-    // Ensure all required keys exist
-    return {
-      pokemon: d.pokemon || [],
-      op: d.op || [],
-      dbz: d.dbz || [],
-      sealed: d.sealed || [],
-      liquidite: d.liquidite || { historique: [] },
-    };
-  } catch { return defaultData; }
+    if (r) {
+      const d = JSON.parse(r);
+      return {
+        pokemon: d.pokemon || [],
+        op: d.op || [],
+        dbz: d.dbz || [],
+        sealed: d.sealed || [],
+        liquidite: d.liquidite || { historique: [] },
+      };
+    }
+  } catch {}
+  return { pokemon: [], op: [], dbz: [], sealed: [], liquidite: { historique: [] } };
 }
-function saveData(d) { try { localStorage.setItem(STORAGE_KEY,JSON.stringify(d)); } catch {} }
-function loadTheme() { try { return localStorage.getItem(THEME_KEY)||"light"; } catch { return "light"; } }
-function loadImages() { try { return JSON.parse(localStorage.getItem(IMG_KEY)||"{}"); } catch { return {}; } }
-function saveImage(id,b64) { try { const i=loadImages(); i[String(id)]=b64; localStorage.setItem(IMG_KEY,JSON.stringify(i)); } catch {} }
-function deleteImage(id) { try { const i=loadImages(); delete i[String(id)]; localStorage.setItem(IMG_KEY,JSON.stringify(i)); } catch {} }
-const FR_TO_EN = {
-  "noctali":"umbreon","dracaufeu":"charizard","ectoplasma":"gengar","pikachu":"pikachu",
-  "ronflex":"snorlax","mewtwo":"mewtwo","lokhlass":"lapras","tortank":"blastoise",
-  "florizarre":"venusaur","mew":"mew","lugia":"lugia","ho-oh":"ho-oh","raichu":"raichu",
-  "evoli":"eevee","aquali":"vaporeon","pyroli":"flareon","voltali":"jolteon",
-  "mentali":"espeon","givrali":"glaceon","phyllali":"leafeon","nymphali":"sylveon",
-  "sulfura":"moltres","artikodin":"articuno","électhor":"zapdos","meganium":"meganium",
-  "typhlosion":"typhlosion","aligatueur":"feraligatr","latias":"latias","latios":"latios",
-  "reshiram":"reshiram","zekrom":"zekrom","darkrai":"darkrai","mimiqui":"mimikyu",
-  "dracaufeu":"charizard","dracovish":"dracovish","dracolosse":"dragonite",
+function saveData(d) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch {} }
+function loadTheme() { try { return localStorage.getItem(THEME_KEY) || "light"; } catch { return "light"; } }
+function loadImages() { try { return JSON.parse(localStorage.getItem(IMG_KEY) || "{}"); } catch { return {}; } }
+
+const fmt = (n) => (n ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "€";
+const pct = (a, b) => a === 0 ? "0.0" : ((b - a) / a * 100).toFixed(1);
+const dateStr = () => new Date().toLocaleDateString("fr-FR");
+
+const LIGHT = {
+  bg: "#F2F2F7", surface: "#FFFFFF", surface2: "#F2F2F7",
+  border: "rgba(60,60,67,0.1)", text: "#000000", textSub: "#8E8E93",
+  navBg: "rgba(242,242,247,0.95)", modalBg: "#F2F2F7",
+  shadow: "0 1px 3px rgba(0,0,0,0.08)", shadowMd: "0 4px 16px rgba(0,0,0,0.1)",
+  accent: "#007AFF", green: "#34C759", red: "#FF3B30", orange: "#FF9500",
+  isDark: false,
+};
+const DARK = {
+  bg: "#000000", surface: "#1C1C1E", surface2: "#2C2C2E",
+  border: "rgba(255,255,255,0.08)", text: "#FFFFFF", textSub: "#8E8E93",
+  navBg: "rgba(28,28,30,0.95)", modalBg: "#1C1C1E",
+  shadow: "0 1px 3px rgba(0,0,0,0.3)", shadowMd: "0 4px 16px rgba(0,0,0,0.4)",
+  accent: "#0A84FF", green: "#30D158", red: "#FF453A", orange: "#FF9F0A",
+  isDark: true,
 };
 
-async function fetchPokemonImage(name) {
-  try {
-    const raw = name.toLowerCase()
-      .replace(/&/g," ").replace(/gx|ex|vmax|vstar|\bv\b/gi,"")
-      .replace(/tag team/gi,"").replace(/sa|sr|rr|hr/gi,"")
-      .replace(/psa.*|cgc.*|afg.*/gi,"").replace(/\s+/g," ").trim().split(" ")[0];
-    const clean = FR_TO_EN[raw] || raw;
-    const res=await fetch(`https://api.pokemontcg.io/v2/cards?q=name:${encodeURIComponent(clean)}&pageSize=1&orderBy=-set.releaseDate`);
-    const d=await res.json();
-    return d.data?.[0]?.images?.large||d.data?.[0]?.images?.small||null;
-  } catch { return null; }
-}
-const dateStr = () => new Date().toLocaleDateString("fr-FR");
+const STATUTS = ["Raw NM","Raw LP","PSA 10","PSA 9","PSA 8","CGC Pristine 10","CGC 10","AFG 9.5 → PSA en cours","En attente PSA","En transit","Retour initié","Sealed","Gradé","Autre"];
+const LANGUES = ["JP","EN","FR","CN","KR","Autre"];
+const TCGS = [
+  { id: "pokemon", label: "Pokémon", icon: "🎴", color: "#f59e0b" },
+  { id: "op", label: "One Piece", icon: "☠️", color: "#ef4444" },
+  { id: "dbz", label: "Dragon Ball", icon: "🐉", color: "#f97316" },
+];
+const NAV = [
+  { id: "dashboard", icon: "⚡", label: "Accueil" },
+  { id: "pokemon", icon: "🎴", label: "Pokémon" },
+  { id: "op", icon: "☠️", label: "One Piece" },
+  { id: "dbz", icon: "🐉", label: "DBZ" },
+  { id: "sealed", icon: "📦", label: "Sealed" },
+  { id: "vendues", icon: "✅", label: "Vendues" },
+];
+
+const buildCMUrl = (c) => `https://www.cardmarket.com/fr/Pokemon/Products/Singles?searchString=${encodeURIComponent(c.name + " " + (c.numero || ""))}`;
 
 function RenderNotes({ notes }) {
   if (!notes) return null;
   const parts = notes.split(/(https?:\/\/[^\s]+)/);
   return (
     <span>
-      {parts.map((part, i) =>
-        part.startsWith("http")
-          ? <span key={i} onClick={e=>{e.stopPropagation();window.open(part,"_blank");}}
-              style={{color:"#007AFF",textDecoration:"underline",wordBreak:"break-all",cursor:"pointer",display:"inline-block",padding:"2px 0"}}>
-              {part}
-            </span>
-          : <span key={i}>{part}</span>
+      {parts.map((p, i) =>
+        p.startsWith("http")
+          ? <span key={i} onClick={() => window.open(p, "_blank")} style={{ color: "#007AFF", textDecoration: "underline", cursor: "pointer", wordBreak: "break-all" }}>{p}</span>
+          : <span key={i}>{p}</span>
       )}
     </span>
   );
 }
-const fmt = (n) => (n??0).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+"€";
-const pct = (a,b) => a===0?"0.0":((b-a)/a*100).toFixed(1);
-const buildCMUrl = (c) => `https://www.cardmarket.com/fr/Pokemon/Products/Singles?searchString=${encodeURIComponent(c.name+" "+(c.numero||""))}&language=${{JP:"Japanese",EN:"English",FR:"French",CN:"Simplified Chinese",KR:"Korean"}[c.langue]||""}&minCondition=2`;
-const buildEbayUrl = (c) => `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(c.name+" "+(c.numero||"")+" "+(c.langue||""))}&LH_Sold=1&LH_Complete=1`;
 
-const THEMES = {
-  light: {
-    bg:"#F2F2F7", bgGrad:"none",
-    surface:"#FFFFFF", surface2:"#F2F2F7",
-    surfaceElevated:"#FFFFFF",
-    border:"rgba(60,60,67,0.1)", border2:"rgba(60,60,67,0.18)",
-    text:"#000000", textSub:"#8E8E93", textTertiary:"#C7C7CC",
-    modalBg:"#F2F2F7", inputBg:"#FFFFFF",
-    barBg:"#E5E5EA", navBg:"rgba(242,242,247,0.92)",
-    shadow:"0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
-    shadowMd:"0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06)",
-    accent:"#007AFF", accentGreen:"#34C759", accentRed:"#FF3B30",
-    accentOrange:"#FF9500", accentPurple:"#AF52DE",
-    isDark:false,
-  },
-  dark: {
-    bg:"#000000", bgGrad:"none",
-    surface:"#1C1C1E", surface2:"#2C2C2E",
-    surfaceElevated:"#3A3A3C",
-    border:"rgba(255,255,255,0.08)", border2:"rgba(255,255,255,0.15)",
-    text:"#FFFFFF", textSub:"#8E8E93", textTertiary:"#636366",
-    modalBg:"#1C1C1E", inputBg:"#2C2C2E",
-    barBg:"#3A3A3C", navBg:"rgba(0,0,0,0.85)",
-    shadow:"0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)",
-    shadowMd:"0 4px 16px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3)",
-    accent:"#0A84FF", accentGreen:"#30D158", accentRed:"#FF453A",
-    accentOrange:"#FF9F0A", accentPurple:"#BF5AF2",
-    isDark:true,
-  },
-};
-const STATUTS = ["Raw NM","Raw LP","PSA 10","PSA 9","PSA 8","CGC Pristine 10","CGC 10","AFG 9.5 → PSA en cours","En attente PSA","En transit","Retour initié","Sealed","Gradé","Autre"];
-const LANGUES = ["JP","EN","FR","CN","KR","Autre"];
-const TCGS = [
-  { id:"pokemon", label:"Pokémon", icon:"🎴", color:"#f59e0b" },
-  { id:"op", label:"One Piece", icon:"☠️", color:"#ef4444" },
-  { id:"dbz", label:"Dragon Ball", icon:"🐉", color:"#f97316" },
-];
-const NAV = [
-  { id:"dashboard", icon:"⚡", label:"Accueil" },
-  { id:"pokemon", icon:"🎴", label:"Pokémon" },
-  { id:"op", icon:"☠️", label:"One Piece" },
-  { id:"dbz", icon:"🐉", label:"DBZ" },
-  { id:"sealed", icon:"📦", label:"Sealed" },
-  { id:"vendues", icon:"✅", label:"Vendues" },
-];
-
-// ── CARD IMAGE ────────────────────────────────────────────────────────────────
-function CardImage({ card, T, style, hideControls, img }) {
-  return (
-    <div style={{ position: "relative", background: T.isDark ? "#2C2C2E" : "#E5E5EA", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", ...style }}>
-      {img
-        ? <img src={img} alt={card.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-        : <div style={{ textAlign: "center", color: T.textSub }}>
-            <div style={{ fontSize: 28 }}>🃏</div>
-          </div>
-      }
-    </div>
-  );
-}
-
-
-// ── CARD MODAL ────────────────────────────────────────────────────────────────
+// ── MODAL ─────────────────────────────────────────────────────────────────────
 function CardModal({ tcg, card, onSave, onClose, T }) {
-  const empty={name:"",numero:"",set:"",langue:"JP",statut:"Raw NM",achat:"",valeur:"",surLiquidite:true,vendu:false,prixVente:"",notes:"",_tcg:tcg};
-  const [form,setForm]=useState(card?{...card,prixVente:card.prixVente||"",_tcg:card._tcg||tcg}:empty);
-  const s=(k,v)=>setForm(p=>({...p,[k]:v}));
-  const valid=form.name&&form.achat&&form.valeur;
-  const inp={background:T.isDark?"#2C2C2E":"#F2F2F7",border:"none",borderRadius:12,color:T.text,padding:"14px 16px",fontSize:15,outline:"none",width:"100%",WebkitAppearance:"none",fontFamily:"inherit"};
+  const def = { name: "", numero: "", set: "", langue: "JP", statut: "Raw NM", achat: "", valeur: "", surLiquidite: false, vendu: false, prixVente: "", notes: "", _tcg: tcg };
+  const [f, setF] = useState(card ? { ...card, prixVente: card.prixVente || "", _tcg: card._tcg || tcg } : def);
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const valid = f.name && f.achat && f.valeur;
+  const inp = { background: T.isDark ? "#2C2C2E" : "#F2F2F7", border: "none", borderRadius: 10, color: T.text, padding: "13px 14px", fontSize: 15, outline: "none", width: "100%", WebkitAppearance: "none", fontFamily: "inherit" };
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:300}} onClick={onClose}>
-      <div style={{background:T.modalBg,borderRadius:"24px 24px 0 0",padding:"24px 20px 44px",width:"100%",maxWidth:500,maxHeight:"92vh",overflowY:"auto",boxShadow:"0 -8px 32px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
-        <div style={{width:36,height:4,background:T.isDark?"#3A3A3C":"#D1D1D6",borderRadius:2,margin:"0 auto 20px"}}/>
-        <div style={{fontSize:18,fontWeight:800,color:T.text,marginBottom:18}}>{card?"Modifier":"Nouvelle carte"}</div>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <input style={inp} placeholder="Nom *" value={form.name} onChange={e=>s("name",e.target.value)}/>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <input style={inp} placeholder="Numéro" value={form.numero} onChange={e=>s("numero",e.target.value)}/>
-            <input style={inp} placeholder="Set" value={form.set} onChange={e=>s("set",e.target.value)}/>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 300 }} onClick={onClose}>
+      <div style={{ background: T.modalBg, borderRadius: "20px 20px 0 0", padding: "20px 16px 44px", width: "100%", maxWidth: 500, maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+        <div style={{ width: 36, height: 4, background: T.isDark ? "#3A3A3C" : "#D1D1D6", borderRadius: 2, margin: "0 auto 18px" }} />
+        <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 16 }}>{card ? "Modifier" : "Nouvelle carte"}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <input style={inp} placeholder="Nom *" value={f.name} onChange={e => set("name", e.target.value)} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <input style={inp} placeholder="Numéro" value={f.numero} onChange={e => set("numero", e.target.value)} />
+            <input style={inp} placeholder="Set" value={f.set} onChange={e => set("set", e.target.value)} />
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <select style={{...inp,cursor:"pointer"}} value={form.langue} onChange={e=>s("langue",e.target.value)}>{LANGUES.map(l=><option key={l}>{l}</option>)}</select>
-            <select style={{...inp,cursor:"pointer"}} value={form.statut} onChange={e=>s("statut",e.target.value)}>{STATUTS.map(st=><option key={st}>{st}</option>)}</select>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <select style={{ ...inp, cursor: "pointer" }} value={f.langue} onChange={e => set("langue", e.target.value)}>{LANGUES.map(l => <option key={l}>{l}</option>)}</select>
+            <select style={{ ...inp, cursor: "pointer" }} value={f.statut} onChange={e => set("statut", e.target.value)}>{STATUTS.map(s => <option key={s}>{s}</option>)}</select>
           </div>
-          <select style={{...inp,cursor:"pointer"}} value={form._tcg||tcg} onChange={e=>s("_tcg",e.target.value)}>
-            {TCGS.map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
+          <select style={{ ...inp, cursor: "pointer" }} value={f._tcg} onChange={e => set("_tcg", e.target.value)}>
+            {TCGS.map(t => <option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
           </select>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <input style={inp} type="number" placeholder="Prix achat €" value={form.achat} onChange={e=>s("achat",e.target.value)}/>
-            <input style={inp} type="number" placeholder="Valeur actuelle €" value={form.valeur} onChange={e=>s("valeur",e.target.value)}/>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <input style={inp} type="number" placeholder="Achat €" value={f.achat} onChange={e => set("achat", e.target.value)} />
+            <input style={inp} type="number" placeholder="Actuel €" value={f.valeur} onChange={e => set("valeur", e.target.value)} />
           </div>
-          <div onClick={()=>s("surLiquidite",!form.surLiquidite)} style={{display:"flex",alignItems:"center",gap:12,padding:"14px",background:form.surLiquidite?"rgba(34,197,94,0.08)":T.surface2,border:`1px solid ${form.surLiquidite?"rgba(34,197,94,0.3)":T.border}`,borderRadius:12,cursor:"pointer"}}>
-            <div style={{width:24,height:24,borderRadius:6,background:form.surLiquidite?"#22c55e":T.barBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:"#000",flexShrink:0}}>{form.surLiquidite?"✓":""}</div>
-            <div><div style={{fontSize:14,fontWeight:600,color:T.text}}>Achat sur liquidité</div><div style={{fontSize:11,color:T.textSub}}>Déduit du solde</div></div>
+          <div onClick={() => set("surLiquidite", !f.surLiquidite)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: f.surLiquidite ? "rgba(52,199,89,0.1)" : T.isDark ? "#2C2C2E" : "#F2F2F7", borderRadius: 10, cursor: "pointer" }}>
+            <div style={{ width: 22, height: 22, borderRadius: 6, background: f.surLiquidite ? T.green : T.isDark ? "#3A3A3C" : "#D1D1D6", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13 }}>{f.surLiquidite ? "✓" : ""}</div>
+            <span style={{ fontSize: 14, color: T.text }}>Achat sur liquidité</span>
           </div>
-          <div onClick={()=>s("vendu",!form.vendu)} style={{display:"flex",alignItems:"center",gap:12,padding:"14px",background:form.vendu?"rgba(99,102,241,0.08)":T.surface2,border:`1px solid ${form.vendu?"rgba(99,102,241,0.3)":T.border}`,borderRadius:12,cursor:"pointer"}}>
-            <div style={{width:24,height:24,borderRadius:6,background:form.vendu?"#6366f1":T.barBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:"#fff",flexShrink:0}}>{form.vendu?"✓":""}</div>
-            <div><div style={{fontSize:14,fontWeight:600,color:T.text}}>Carte vendue</div><div style={{fontSize:11,color:T.textSub}}>Bascule dans l'onglet Vendues</div></div>
+          <div onClick={() => set("vendu", !f.vendu)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: f.vendu ? "rgba(99,102,241,0.1)" : T.isDark ? "#2C2C2E" : "#F2F2F7", borderRadius: 10, cursor: "pointer" }}>
+            <div style={{ width: 22, height: 22, borderRadius: 6, background: f.vendu ? "#6366f1" : T.isDark ? "#3A3A3C" : "#D1D1D6", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13 }}>{f.vendu ? "✓" : ""}</div>
+            <span style={{ fontSize: 14, color: T.text }}>Carte vendue</span>
           </div>
-          {form.vendu&&<input style={inp} type="number" placeholder="Prix de vente €" value={form.prixVente} onChange={e=>s("prixVente",e.target.value)}/>}
-          <input style={inp} placeholder="Notes..." value={form.notes} onChange={e=>s("notes",e.target.value)}/>
+          {f.vendu && <input style={inp} type="number" placeholder="Prix de vente €" value={f.prixVente} onChange={e => set("prixVente", e.target.value)} />}
+          <input style={inp} placeholder="Notes..." value={f.notes} onChange={e => set("notes", e.target.value)} />
         </div>
-        <div style={{display:"flex",gap:10,marginTop:18}}>
-          <button onClick={onClose} style={{flex:1,padding:"15px",background:T.isDark?"#3A3A3C":"#E5E5EA",border:"none",borderRadius:14,color:T.textSub,cursor:"pointer",fontSize:15,fontWeight:600,fontFamily:"inherit"}}>Annuler</button>
-          <button onClick={()=>valid&&onSave({...form,id:card?.id||Date.now(),achat:parseFloat(form.achat),valeur:parseFloat(form.valeur),prixVente:form.prixVente?parseFloat(form.prixVente):null,_tcg:form._tcg||tcg})}
-            style={{flex:2,padding:"15px",background:valid?T.accent:T.isDark?"#3A3A3C":"#E5E5EA",border:"none",borderRadius:14,color:valid?"#fff":T.textSub,fontWeight:600,cursor:valid?"pointer":"default",fontSize:15,fontFamily:"inherit"}}>
-            {card?"Sauvegarder":"Ajouter"}
+        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "14px", background: T.isDark ? "#2C2C2E" : "#E5E5EA", border: "none", borderRadius: 12, color: T.textSub, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Annuler</button>
+          <button onClick={() => valid && onSave({ ...f, id: card?.id || Date.now(), achat: parseFloat(f.achat), valeur: parseFloat(f.valeur), prixVente: f.prixVente ? parseFloat(f.prixVente) : null })}
+            style={{ flex: 2, padding: "14px", background: valid ? T.accent : T.isDark ? "#2C2C2E" : "#E5E5EA", border: "none", borderRadius: 12, color: valid ? "#fff" : T.textSub, fontWeight: 600, cursor: valid ? "pointer" : "default", fontSize: 15, fontFamily: "inherit" }}>
+            {card ? "Sauvegarder" : "Ajouter"}
           </button>
         </div>
       </div>
@@ -198,105 +129,62 @@ function CardModal({ tcg, card, onSave, onClose, T }) {
   );
 }
 
-// ── CARD GRID ITEM ────────────────────────────────────────────────────────────
-function CardGridItem({ card, tcg, tcgColor, onEdit, onDelete, T, img }) {
-  const [open,setOpen]=useState(false);
-  const gain=card.valeur-card.achat;
-  const gainPct=parseFloat(pct(card.achat,card.valeur));
-  const up=gain>=0;
-  return (
-    <div style={{borderRadius:14,overflow:"hidden",background:T.isDark?"#1C1C1E":"#e5e5ea",position:"relative",paddingBottom:"150%"}}>
-      <div onClick={()=>setOpen(!open)} style={{cursor:"pointer",position:"absolute",inset:0}}>
-        <CardImage card={card} tcg={tcg} T={T} style={{position:"absolute",inset:0,borderRadius:0,height:"100%",width:"100%"}} hideControls={true} img={img}/>
-        {/* Price overlay bottom */}
-        <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"20px 8px 8px",background:"linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)"}}>
-          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.8)",marginBottom:1}}>{fmt(card.achat)}</div>
-          <div style={{fontSize:13,fontWeight:800,color:up?"#30D158":"#FF453A"}}>{fmt(card.valeur)}</div>
-        </div>
-        {/* % badge top right */}
-        <div style={{position:"absolute",top:6,right:6,background:up?"rgba(48,209,88,0.9)":"rgba(255,69,58,0.9)",borderRadius:8,padding:"2px 7px"}}>
-          <span style={{fontSize:11,fontWeight:800,color:"#fff"}}>{up?"+":""}{gainPct}%</span>
-        </div>
-      </div>
-      {open&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:200}} onClick={()=>setOpen(false)}>
-          <div style={{background:T.modalBg,borderRadius:"24px 24px 0 0",padding:"20px 20px 44px",width:"100%",maxWidth:500}} onClick={e=>e.stopPropagation()}>
-            <div style={{width:36,height:4,background:T.isDark?"#3A3A3C":"#D1D1D6",borderRadius:2,margin:"0 auto 16px"}}/>
-            <div style={{fontSize:16,fontWeight:800,color:T.text,marginBottom:14}}>{card.name}</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
-              {[["Achat",fmt(card.achat),"#60a5fa"],["Actuel",fmt(card.valeur),up?"#22c55e":"#ef4444"],["P&L",(gain>=0?"+":"")+fmt(gain),up?"#22c55e":"#ef4444"]].map(([k,v,c])=>(
-                <div key={k} style={{background:T.surface2,borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
-                  <div style={{fontSize:9,color:T.textSub,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:3}}>{k}</div>
-                  <div style={{fontSize:13,fontWeight:800,color:c}}>{v}</div>
-                </div>
-              ))}
-            </div>
-            {card.notes&&<div style={{fontSize:13,color:T.textSub,marginBottom:12,padding:"10px 12px",background:T.isDark?"#2C2C2E":"#F2F2F7",borderRadius:10}}><RenderNotes notes={card.notes}/></div>}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-              <a href={buildCMUrl(card)} target="_blank" rel="noopener noreferrer" style={{padding:"11px",background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:12,color:"#60a5fa",fontSize:12,textDecoration:"none",fontWeight:600,textAlign:"center",display:"block"}}>📊 Cardmarket</a>
-              <a href={buildEbayUrl(card)} target="_blank" rel="noopener noreferrer" style={{padding:"11px",background:"rgba(234,179,8,0.1)",border:"1px solid rgba(234,179,8,0.2)",borderRadius:12,color:"#eab308",fontSize:12,textDecoration:"none",fontWeight:600,textAlign:"center",display:"block"}}>🔍 eBay vendus</a>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              <button onClick={()=>{setOpen(false);onEdit(card);}} style={{padding:"12px",background:T.surface2,border:`1px solid ${T.border}`,borderRadius:12,color:T.textSub,cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>✏️ Modifier</button>
-              <button onClick={()=>{setOpen(false);onDelete(tcg,card.id);}} style={{padding:"12px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:12,color:"#ef4444",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>🗑 Supprimer</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+// ── CARD ──────────────────────────────────────────────────────────────────────
+function Card({ card, tcgId, img, onEdit, onDelete, onUpload, T }) {
+  const [open, setOpen] = useState(false);
+  const gain = card.valeur - card.achat;
+  const gainPct = parseFloat(pct(card.achat, card.valeur));
+  const up = gain >= 0;
+  const sc = card.statut.includes("PSA 10") || card.statut.includes("Pristine") ? T.green
+    : card.statut.includes("PSA 9") || card.statut.includes("AFG") ? T.orange
+    : card.statut.includes("transit") || card.statut.includes("Retour") ? T.orange : T.textSub;
 
-// ── CARD LIST ITEM ────────────────────────────────────────────────────────────
-function CardListItem({ card, tcg, tcgColor, onEdit, onDelete, T, img, onUpload }) {
-  const [open,setOpen]=useState(false);
-  const gain=card.valeur-card.achat;
-  const gainPct=parseFloat(pct(card.achat,card.valeur));
-  const up=gain>=0;
-  const sc=card.statut.includes("PSA 10")||card.statut.includes("Pristine")?"#22c55e":card.statut.includes("PSA 9")||card.statut.includes("AFG")?"#f59e0b":card.statut.includes("transit")||card.statut.includes("Retour")?"#f97316":"#94a3b8";
   return (
-    <div style={{marginBottom:10,borderRadius:16,overflow:"hidden",background:T.surface,boxShadow:open?T.shadowMd:T.shadow,transition:"box-shadow 0.2s"}}>
-      <div onClick={()=>setOpen(!open)} style={{padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
-        <CardImage card={card} tcg={tcg} T={T} style={{width:48,height:64,borderRadius:8,flexShrink:0}} hideControls={true} img={img}/>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{card.name}</div>
-          <span style={{fontSize:11,padding:"2px 7px",borderRadius:6,background:sc+"20",color:sc,fontWeight:700,border:`1px solid ${sc}30`}}>{card.statut}</span>
-          <div style={{fontSize:11,color:T.textSub,marginTop:4}}>{card.langue}{card.set&&card.set!=="—"?" · "+card.set:""}</div>
+    <div style={{ marginBottom: 10, borderRadius: 14, background: T.surface, boxShadow: T.shadow, overflow: "hidden" }}>
+      <div onClick={() => setOpen(!open)} style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+        {img
+          ? <img src={img} alt={card.name} style={{ width: 48, height: 64, borderRadius: 8, objectFit: "contain", background: T.surface2, flexShrink: 0 }} />
+          : <div style={{ width: 48, height: 64, borderRadius: 8, background: T.surface2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🃏</div>
+        }
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: T.text, marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{card.name}</div>
+          <div style={{ fontSize: 12, padding: "2px 8px", borderRadius: 6, background: sc + "20", color: sc, display: "inline-block", marginBottom: 4 }}>{card.statut}</div>
+          <div style={{ fontSize: 11, color: T.textSub }}>{card.langue}{card.set && card.set !== "—" ? " · " + card.set : ""}</div>
         </div>
-        <div style={{textAlign:"right",flexShrink:0}}>
-          <div style={{fontSize:10,color:T.textSub,marginBottom:1}}>Achat</div>
-          <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:4}}>{fmt(card.achat)}</div>
-          <div style={{fontSize:10,color:T.textSub,marginBottom:1}}>Actuel</div>
-          <div style={{fontSize:14,fontWeight:800,color:up?"#22c55e":"#ef4444"}}>{fmt(card.valeur)}</div>
-          <div style={{fontSize:11,color:up?"#22c55e":"#ef4444"}}>{up?"+":""}{gainPct}%</div>
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <div style={{ fontSize: 11, color: T.textSub, marginBottom: 2 }}>Achat</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 4 }}>{fmt(card.achat)}</div>
+          <div style={{ fontSize: 11, color: T.textSub, marginBottom: 2 }}>Actuel</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: up ? T.green : T.red }}>{fmt(card.valeur)}</div>
+          <div style={{ fontSize: 11, color: up ? T.green : T.red }}>{up ? "+" : ""}{gainPct}%</div>
         </div>
       </div>
-      {open&&(
-        <div style={{borderTop:`1px solid ${T.border}`,padding:"14px 16px"}}>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
-            {[["Achat",fmt(card.achat)],["Actuel",fmt(card.valeur)],["P&L",(gain>=0?"+":"")+fmt(gain)],["ROI",(gainPct>=0?"+":"")+gainPct+"%"]].map(([k,v])=>(
-              <div key={k} style={{background:T.isDark?"#2C2C2E":"#F2F2F7",borderRadius:10,padding:"8px 6px",textAlign:"center"}}>
-                <div style={{fontSize:9,color:T.textSub,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:3}}>{k}</div>
-                <div style={{fontSize:13,fontWeight:700,color:T.text}}>{v}</div>
+      {open && (
+        <div style={{ borderTop: `1px solid ${T.border}`, padding: "14px 16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 12 }}>
+            {[["Achat", fmt(card.achat)], ["Actuel", fmt(card.valeur)], ["P&L", (gain >= 0 ? "+" : "") + fmt(gain)], ["ROI", (gainPct >= 0 ? "+" : "") + gainPct + "%"]].map(([k, v]) => (
+              <div key={k} style={{ background: T.surface2, borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
+                <div style={{ fontSize: 9, color: T.textSub, textTransform: "uppercase", marginBottom: 2 }}>{k}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>{v}</div>
               </div>
             ))}
           </div>
-          {card.notes&&<div style={{fontSize:13,color:T.textSub,marginBottom:12,padding:"10px 12px",background:T.isDark?"#2C2C2E":"#F2F2F7",borderRadius:10}}><RenderNotes notes={card.notes}/></div>}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-            <a href={buildCMUrl(card)} target="_blank" rel="noopener noreferrer" style={{padding:"11px",background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:12,color:"#60a5fa",fontSize:12,textDecoration:"none",fontWeight:600,textAlign:"center",display:"block"}}>📊 Cardmarket</a>
-            <label style={{padding:"11px",background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:12,color:"#818cf8",fontSize:12,fontWeight:600,textAlign:"center",display:"block",cursor:"pointer"}}>
+          {card.notes && <div style={{ fontSize: 13, color: T.textSub, marginBottom: 12, padding: "10px 12px", background: T.surface2, borderRadius: 8 }}><RenderNotes notes={card.notes} /></div>}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+            <a href={buildCMUrl(card)} target="_blank" rel="noopener noreferrer" style={{ padding: "11px", background: "rgba(0,122,255,0.1)", borderRadius: 10, color: T.accent, fontSize: 13, textDecoration: "none", fontWeight: 600, textAlign: "center", display: "block" }}>📊 Cardmarket</a>
+            <label style={{ padding: "11px", background: "rgba(99,102,241,0.1)", borderRadius: 10, color: "#818cf8", fontSize: 13, fontWeight: 600, textAlign: "center", display: "block", cursor: "pointer" }}>
               📷 Photo
-              <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
-                const file=e.target.files?.[0]; if(!file) return;
-                const r=new FileReader();
-                r.onload=ev=>{ onUpload&&onUpload(card.id, ev.target.result); };
+              <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                const file = e.target.files?.[0]; if (!file) return;
+                const r = new FileReader();
+                r.onload = ev => onUpload(card.id, ev.target.result);
                 r.readAsDataURL(file);
-              }}/>
+              }} />
             </label>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-            <button onClick={()=>onEdit(card)} style={{padding:"12px",background:T.isDark?"#2C2C2E":"#F2F2F7",border:"none",borderRadius:12,color:T.textSub,cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>✏️ Modifier</button>
-            <button onClick={()=>onDelete(tcg,card.id)} style={{padding:"12px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:12,color:"#ef4444",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>🗑 Supprimer</button>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <button onClick={() => onEdit(card)} style={{ padding: "11px", background: T.surface2, border: "none", borderRadius: 10, color: T.textSub, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>✏️ Modifier</button>
+            <button onClick={() => onDelete(tcgId, card.id)} style={{ padding: "11px", background: "rgba(255,59,48,0.08)", border: "none", borderRadius: 10, color: T.red, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>🗑 Supprimer</button>
           </div>
         </div>
       )}
@@ -305,148 +193,260 @@ function CardListItem({ card, tcg, tcgColor, onEdit, onDelete, T, img, onUpload 
 }
 
 // ── TCG VIEW ──────────────────────────────────────────────────────────────────
-function TcgView({ tcg, cards, onEdit, onDelete, T, images, onUpload }) {
-  const actives = cards.filter(c=>!c.vendu);
+function TcgView({ tcg, cards, images, onEdit, onDelete, onUpload, T }) {
+  const actives = cards.filter(c => !c.vendu);
+  const inv = actives.reduce((s, c) => s + c.achat, 0);
+  const val = actives.reduce((s, c) => s + c.valeur, 0);
+  const gain = val - inv;
   return (
     <div>
-      <div style={{padding:16,color:T.text,fontSize:16}}>
-        {actives.length} carte{actives.length>1?"s":""}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+        {[["Investi", fmt(inv), T.accent], ["Valeur", fmt(val), T.text], ["P&L", (gain >= 0 ? "+" : "") + fmt(gain), gain >= 0 ? T.green : T.red]].map(([k, v, c]) => (
+          <div key={k} style={{ background: T.surface, borderRadius: 12, padding: "12px 8px", textAlign: "center", boxShadow: T.shadow }}>
+            <div style={{ fontSize: 10, color: T.textSub, textTransform: "uppercase", marginBottom: 4 }}>{k}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: c }}>{v}</div>
+          </div>
+        ))}
       </div>
-      {actives.map(card=>(
-        <div key={card.id} style={{padding:"12px 16px",marginBottom:8,background:T.surface,borderRadius:12,boxShadow:T.shadow}}>
-          <div style={{fontSize:14,fontWeight:700,color:T.text}}>{card.name}</div>
-          <div style={{fontSize:12,color:T.textSub,marginTop:4}}>{card.langue} · {card.statut}</div>
-          <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}>
-            <span style={{fontSize:12,color:T.textSub}}>{fmt(card.achat)}</span>
-            <span style={{fontSize:13,fontWeight:700,color:card.valeur>=card.achat?"#34C759":"#FF3B30"}}>{fmt(card.valeur)}</span>
+      {actives.length === 0
+        ? <div style={{ textAlign: "center", padding: "60px 20px", color: T.textSub }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>📭</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: T.text }}>Aucune carte</div>
+            <div style={{ fontSize: 13, marginTop: 4 }}>Appuie sur + pour ajouter</div>
           </div>
-          <div style={{display:"flex",gap:8,marginTop:8}}>
-            <button onClick={()=>onEdit(card)} style={{flex:1,padding:"8px",background:T.isDark?"#2C2C2E":"#F2F2F7",border:"none",borderRadius:8,color:T.textSub,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>✏️ Modifier</button>
-            <button onClick={()=>onDelete(tcg.id,card.id)} style={{flex:1,padding:"8px",background:"rgba(255,59,48,0.08)",border:"none",borderRadius:8,color:"#FF3B30",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑 Suppr.</button>
-          </div>
-        </div>
-      ))}
+        : actives.map(c => <Card key={c.id} card={c} tcgId={tcg.id} img={images[String(c.id)]} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} />)
+      }
     </div>
   );
 }
 
 // ── VENDUES VIEW ──────────────────────────────────────────────────────────────
 function VenduesView({ data, onRestaurer, T }) {
-  const allVendues = TCGS.flatMap(t=>(data[t.id]||[]).filter(c=>c.vendu).map(c=>({...c,_tcg:t.id,_tcgLabel:t.label,_tcgColor:t.color})));
-  const totalAchat = allVendues.reduce((s,c)=>s+c.achat,0);
-  const totalVente = allVendues.filter(c=>c.prixVente).reduce((s,c)=>s+c.prixVente,0);
-  const totalBenef = totalVente-totalAchat;
+  const all = TCGS.flatMap(t => (data[t.id] || []).filter(c => c.vendu).map(c => ({ ...c, _tcgId: t.id, _tcgLabel: t.label })));
+  const totalAchat = all.reduce((s, c) => s + c.achat, 0);
+  const totalVente = all.filter(c => c.prixVente).reduce((s, c) => s + c.prixVente, 0);
+  const benef = totalVente - totalAchat;
   return (
     <div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:20}}>
-        {[["Total acheté",fmt(totalAchat),"#60a5fa"],["Total vendu",fmt(totalVente),"#a78bfa"],["Bénéfice",(totalBenef>=0?"+":"")+fmt(totalBenef),totalBenef>=0?"#22c55e":"#ef4444"]].map(([k,v,c])=>(
-          <div key={k} style={{background:T.surface,borderRadius:14,padding:"12px 10px",textAlign:"center",boxShadow:T.shadow}}>
-            <div style={{fontSize:9,color:T.textSub,textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>{k}</div>
-            <div style={{fontSize:14,fontWeight:800,color:c}}>{v}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
+        {[["Acheté", fmt(totalAchat), T.accent], ["Vendu", fmt(totalVente), "#818cf8"], ["Bénéfice", (benef >= 0 ? "+" : "") + fmt(benef), benef >= 0 ? T.green : T.red]].map(([k, v, c]) => (
+          <div key={k} style={{ background: T.surface, borderRadius: 12, padding: "12px 8px", textAlign: "center", boxShadow: T.shadow }}>
+            <div style={{ fontSize: 10, color: T.textSub, textTransform: "uppercase", marginBottom: 4 }}>{k}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: c }}>{v}</div>
           </div>
         ))}
       </div>
-      {allVendues.length===0?(
-        <div style={{textAlign:"center",padding:"60px 20px",color:T.textSub}}>
-          <div style={{fontSize:44,marginBottom:14}}>✅</div>
-          <div style={{fontSize:17,fontWeight:700,color:T.text,marginBottom:6}}>Aucune carte vendue</div>
-          <div style={{fontSize:14}}>Les cartes marquées "vendu" apparaîtront ici</div>
-        </div>
-      ):allVendues.map(card=>{
-        const benef=(card.prixVente||0)-card.achat;
-        const benefPct=parseFloat(pct(card.achat,card.prixVente||card.achat));
-        return (
-          <div key={card.id} style={{marginBottom:10,borderRadius:16,overflow:"hidden",background:T.surface,boxShadow:T.shadow}}>
-            <div style={{padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:4,height:52,borderRadius:2,background:benef>=0?"#22c55e":"#ef4444",flexShrink:0}}/>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{card.name}</div>
-                <div style={{fontSize:11,color:T.textSub,marginBottom:6}}>{card._tcgLabel} · {card.langue}{card.set&&card.set!=="—"?" · "+card.set:""}</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
-                  {[["Achat",fmt(card.achat),"#60a5fa"],["Vendu",fmt(card.prixVente||0),"#a78bfa"],["Bénéf.",(benef>=0?"+":"")+fmt(benef),benef>=0?"#22c55e":"#ef4444"]].map(([k,v,c])=>(
-                    <div key={k} style={{background:T.surface,borderRadius:8,padding:"6px 8px",textAlign:"center"}}>
-                      <div style={{fontSize:9,color:T.textSub,textTransform:"uppercase",marginBottom:2}}>{k}</div>
-                      <div style={{fontSize:12,fontWeight:700,color:c}}>{v}</div>
+      {all.length === 0
+        ? <div style={{ textAlign: "center", padding: "60px 20px", color: T.textSub }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>✅</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: T.text }}>Aucune carte vendue</div>
+          </div>
+        : all.map(c => {
+            const b = (c.prixVente || 0) - c.achat;
+            return (
+              <div key={c.id} style={{ marginBottom: 10, borderRadius: 14, background: T.surface, boxShadow: T.shadow, padding: "14px 16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: T.text, marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</div>
+                    <div style={{ fontSize: 12, color: T.textSub }}>{c._tcgLabel} · {c.langue}</div>
+                  </div>
+                  <button onClick={() => onRestaurer(c._tcgId, c.id)} style={{ padding: "6px 12px", background: "rgba(99,102,241,0.1)", border: "none", borderRadius: 8, color: "#818cf8", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", flexShrink: 0, marginLeft: 8 }}>↩ Restaurer</button>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 10 }}>
+                  {[["Achat", fmt(c.achat), T.text], ["Vendu", fmt(c.prixVente || 0), "#818cf8"], ["Bénéf.", (b >= 0 ? "+" : "") + fmt(b), b >= 0 ? T.green : T.red]].map(([k, v, col]) => (
+                    <div key={k} style={{ background: T.surface2, borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
+                      <div style={{ fontSize: 9, color: T.textSub, textTransform: "uppercase", marginBottom: 2 }}>{k}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: col }}>{v}</div>
                     </div>
                   ))}
                 </div>
               </div>
-              <div style={{textAlign:"right",flexShrink:0}}>
-                <div style={{fontSize:18,fontWeight:900,color:benef>=0?"#22c55e":"#ef4444"}}>{benef>=0?"+":""}{benefPct}%</div>
-                <button onClick={()=>onRestaurer(card._tcg,card.id)} style={{marginTop:8,padding:"6px 12px",background:"rgba(99,102,241,0.15)",border:"1px solid rgba(99,102,241,0.3)",borderRadius:8,color:"#818cf8",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",whiteSpace:"nowrap"}}>↩ Restaurer</button>
-              </div>
-            </div>
+            );
+          })
+      }
+    </div>
+  );
+}
+
+// ── SEALED VIEW ───────────────────────────────────────────────────────────────
+const SEALED_TYPES = ["ETB", "Display", "Autre"];
+
+function SealedModal({ item, onSave, onClose, T }) {
+  const def = { name: "", type: "ETB", set: "", langue: "EN", achat: "", valeur: "", qty: "1", notes: "" };
+  const [f, setF] = useState(item ? { ...item, qty: String(item.qty || 1) } : def);
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const valid = f.name && f.achat && f.valeur;
+  const inp = { background: T.isDark ? "#2C2C2E" : "#F2F2F7", border: "none", borderRadius: 10, color: T.text, padding: "13px 14px", fontSize: 15, outline: "none", width: "100%", WebkitAppearance: "none", fontFamily: "inherit" };
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 300 }} onClick={onClose}>
+      <div style={{ background: T.modalBg, borderRadius: "20px 20px 0 0", padding: "20px 16px 44px", width: "100%", maxWidth: 500, maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+        <div style={{ width: 36, height: 4, background: T.isDark ? "#3A3A3C" : "#D1D1D6", borderRadius: 2, margin: "0 auto 18px" }} />
+        <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 16 }}>{item ? "Modifier" : "Nouveau scellé"}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <input style={inp} placeholder="Nom *" value={f.name} onChange={e => set("name", e.target.value)} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <select style={{ ...inp, cursor: "pointer" }} value={f.type} onChange={e => set("type", e.target.value)}>{SEALED_TYPES.map(t => <option key={t}>{t}</option>)}</select>
+            <input style={inp} placeholder="Set" value={f.set} onChange={e => set("set", e.target.value)} />
           </div>
-        );
-      })}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <select style={{ ...inp, cursor: "pointer" }} value={f.langue} onChange={e => set("langue", e.target.value)}>{LANGUES.map(l => <option key={l}>{l}</option>)}</select>
+            <input style={inp} type="number" placeholder="Quantité" value={f.qty} onChange={e => set("qty", e.target.value)} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <input style={inp} type="number" placeholder="Achat € (unitaire)" value={f.achat} onChange={e => set("achat", e.target.value)} />
+            <input style={inp} type="number" placeholder="Actuel € (unitaire)" value={f.valeur} onChange={e => set("valeur", e.target.value)} />
+          </div>
+          <input style={inp} placeholder="Notes..." value={f.notes} onChange={e => set("notes", e.target.value)} />
+        </div>
+        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "14px", background: T.isDark ? "#2C2C2E" : "#E5E5EA", border: "none", borderRadius: 12, color: T.textSub, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Annuler</button>
+          <button onClick={() => valid && onSave({ ...f, id: item?.id || Date.now(), achat: parseFloat(f.achat), valeur: parseFloat(f.valeur), qty: parseInt(f.qty) || 1 })}
+            style={{ flex: 2, padding: "14px", background: valid ? T.accent : T.isDark ? "#2C2C2E" : "#E5E5EA", border: "none", borderRadius: 12, color: valid ? "#fff" : T.textSub, fontWeight: 600, cursor: valid ? "pointer" : "default", fontSize: 15, fontFamily: "inherit" }}>
+            {item ? "Sauvegarder" : "Ajouter"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SealedView({ items, onSave, onDelete, T }) {
+  const [showModal, setShowModal] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const inv = items.reduce((s, i) => s + i.achat * i.qty, 0);
+  const val = items.reduce((s, i) => s + i.valeur * i.qty, 0);
+  const gain = val - inv;
+  const grouped = { ETB: [], Display: [], Autre: [] };
+  items.forEach(i => { (grouped[i.type] || grouped["Autre"]).push(i); });
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+        {[["Investi", fmt(inv), T.accent], ["Valeur", fmt(val), T.text], ["P&L", (gain >= 0 ? "+" : "") + fmt(gain), gain >= 0 ? T.green : T.red]].map(([k, v, c]) => (
+          <div key={k} style={{ background: T.surface, borderRadius: 12, padding: "12px 8px", textAlign: "center", boxShadow: T.shadow }}>
+            <div style={{ fontSize: 10, color: T.textSub, textTransform: "uppercase", marginBottom: 4 }}>{k}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: c }}>{v}</div>
+          </div>
+        ))}
+      </div>
+      {items.length === 0
+        ? <div style={{ textAlign: "center", padding: "60px 20px", color: T.textSub }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>📦</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: T.text }}>Aucun produit scellé</div>
+          </div>
+        : SEALED_TYPES.map(type => {
+            const group = grouped[type] || [];
+            if (!group.length) return null;
+            return (
+              <div key={type} style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: T.accent, marginBottom: 10 }}>📦 {type}</div>
+                {group.map(item => {
+                  const g = (item.valeur - item.achat) * item.qty;
+                  const up = g >= 0;
+                  return (
+                    <div key={item.id} style={{ marginBottom: 10, borderRadius: 14, background: T.surface, boxShadow: T.shadow, padding: "14px 16px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 15, fontWeight: 600, color: T.text, marginBottom: 4 }}>{item.name}</div>
+                          <div style={{ fontSize: 12, color: T.textSub }}>{item.set} · {item.langue} · x{item.qty}</div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: up ? T.green : T.red }}>{up ? "+" : ""}{((item.valeur - item.achat) / item.achat * 100).toFixed(1)}%</div>
+                          <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                            <button onClick={() => { setEditItem(item); setShowModal(true); }} style={{ width: 32, height: 32, borderRadius: 8, background: T.surface2, border: "none", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>✏️</button>
+                            <button onClick={() => onDelete(item.id)} style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,59,48,0.08)", border: "none", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", color: T.red }}>🗑</button>
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 10 }}>
+                        {[["Achat/u", fmt(item.achat), T.text], ["Actuel/u", fmt(item.valeur), T.text], ["P&L total", (g >= 0 ? "+" : "") + fmt(g), up ? T.green : T.red]].map(([k, v, c]) => (
+                          <div key={k} style={{ background: T.surface2, borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
+                            <div style={{ fontSize: 9, color: T.textSub, textTransform: "uppercase", marginBottom: 2 }}>{k}</div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: c }}>{v}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })
+      }
+      {showModal && <SealedModal item={editItem} onSave={item => { onSave(item); setShowModal(false); setEditItem(null); }} onClose={() => { setShowModal(false); setEditItem(null); }} T={T} />}
     </div>
   );
 }
 
 // ── LIQUIDITE VIEW ────────────────────────────────────────────────────────────
-function LiquiditeView({ data, onInjecter, onEditInjection, onDeleteInjection, T }) {
-  const { totalInjecte,totalAchats,totalVentes,solde }=calcLiquidite(data);
-  const [showInject,setShowInject]=useState(false);
-  const [editingIdx,setEditingIdx]=useState(null);
-  const [montant,setMontant]=useState("");
-  const [label,setLabel]=useState("");
-  const historique=(data.liquidite?.historique||[]).slice().reverse();
-  const inp={background:T.isDark?"#2C2C2E":"#F2F2F7",border:"none",borderRadius:12,color:T.text,padding:"14px 16px",fontSize:15,outline:"none",width:"100%",fontFamily:"inherit"};
+function LiquiditeView({ data, onInjecter, onEditInj, onDeleteInj, T }) {
+  const hist = data.liquidite?.historique || [];
+  const totalInjecte = hist.filter(h => h.type === "injection").reduce((s, h) => s + h.montant, 0);
+  const allCards = [...(data.pokemon || []), ...(data.op || []), ...(data.dbz || [])];
+  const totalAchats = allCards.filter(c => c.surLiquidite && !c.vendu).reduce((s, c) => s + c.achat, 0);
+  const totalVentes = allCards.filter(c => c.vendu && c.surLiquidite && c.prixVente).reduce((s, c) => s + c.prixVente, 0);
+  const solde = totalInjecte - totalAchats + totalVentes;
+  const [showInject, setShowInject] = useState(false);
+  const [editIdx, setEditIdx] = useState(null);
+  const [montant, setMontant] = useState("");
+  const [label, setLabel] = useState("");
+  const reversed = [...hist].reverse();
+  const inp = { background: T.isDark ? "#2C2C2E" : "#F2F2F7", border: "none", borderRadius: 10, color: T.text, padding: "13px 14px", fontSize: 15, outline: "none", width: "100%", fontFamily: "inherit" };
   return (
     <div>
-      <div style={{background:T.surface,borderRadius:22,padding:"24px 20px",marginBottom:20,boxShadow:T.shadowMd}}>
-        <div style={{fontSize:13,color:T.textSub,fontWeight:500,marginBottom:4}}>Solde disponible</div>
-        <div style={{fontSize:38,fontWeight:700,color:solde>=0?T.accentGreen:T.accentRed,letterSpacing:"-1.5px",marginBottom:16,lineHeight:1}}>{fmt(solde)}</div>
-        <button onClick={()=>setShowInject(true)} style={{padding:"12px 20px",background:T.accentGreen,border:"none",borderRadius:12,color:"#fff",fontWeight:600,cursor:"pointer",fontSize:14,fontFamily:"inherit"}}>+ Injecter des fonds</button>
+      <div style={{ background: T.surface, borderRadius: 18, padding: "20px 16px", marginBottom: 16, boxShadow: T.shadowMd }}>
+        <div style={{ fontSize: 12, color: T.textSub, marginBottom: 4 }}>Solde disponible</div>
+        <div style={{ fontSize: 36, fontWeight: 700, color: solde >= 0 ? T.green : T.red, letterSpacing: "-1px", marginBottom: 14 }}>{fmt(solde)}</div>
+        <button onClick={() => setShowInject(true)} style={{ padding: "11px 20px", background: T.green, border: "none", borderRadius: 10, color: "#fff", fontWeight: 600, cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>+ Injecter</button>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:20}}>
-        {[["Injecté",fmt(totalInjecte),"#60a5fa"],["Dépensé",fmt(totalAchats),"#ef4444"],["Récupéré",fmt(totalVentes),"#22c55e"]].map(([k,v,c])=>(
-          <div key={k} style={{background:T.surface,borderRadius:14,padding:"14px 10px",textAlign:"center",boxShadow:T.shadow}}>
-            <div style={{fontSize:9,color:T.textSub,textTransform:"uppercase",letterSpacing:"1px",marginBottom:5}}>{k}</div>
-            <div style={{fontSize:17,fontWeight:800,color:c}}>{v}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
+        {[["Injecté", fmt(totalInjecte), T.accent], ["Dépensé", fmt(totalAchats), T.red], ["Récupéré", fmt(totalVentes), T.green]].map(([k, v, c]) => (
+          <div key={k} style={{ background: T.surface, borderRadius: 12, padding: "12px 8px", textAlign: "center", boxShadow: T.shadow }}>
+            <div style={{ fontSize: 9, color: T.textSub, textTransform: "uppercase", marginBottom: 4 }}>{k}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: c }}>{v}</div>
           </div>
         ))}
       </div>
-      <div style={{fontSize:12,color:T.textSub,fontWeight:600,letterSpacing:"-0.2px",marginBottom:8,paddingLeft:2}}>Historique</div>
-      {historique.length===0?<div style={{textAlign:"center",padding:"30px",color:T.textSub,fontSize:13}}>Aucun mouvement</div>:(
-        <div style={{background:T.surface,borderRadius:18,overflow:"hidden",boxShadow:T.shadow}}>
-          {historique.slice(0,30).map((h,i)=>{
-            const realIdx=historique.length-1-i;
-            return (
-              <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:i<Math.min(historique.length,30)-1?`1px solid ${T.border}`:"none"}}>
-                <div style={{width:36,height:36,borderRadius:10,background:h.type==="injection"?"rgba(34,197,94,0.15)":h.type==="vente"?"rgba(99,102,241,0.15)":"rgba(239,68,68,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
-                  {h.type==="injection"?"💵":h.type==="vente"?"✅":"🛒"}
+      <div style={{ fontSize: 12, color: T.textSub, fontWeight: 600, marginBottom: 10 }}>Historique</div>
+      {reversed.length === 0
+        ? <div style={{ textAlign: "center", padding: "30px", color: T.textSub, fontSize: 13 }}>Aucun mouvement</div>
+        : <div style={{ background: T.surface, borderRadius: 14, overflow: "hidden", boxShadow: T.shadow }}>
+            {reversed.slice(0, 30).map((h, i) => {
+              const realIdx = reversed.length - 1 - i;
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 16px", borderBottom: i < Math.min(reversed.length, 30) - 1 ? `1px solid ${T.border}` : "none" }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: h.type === "injection" ? "rgba(52,199,89,0.15)" : h.type === "vente" ? "rgba(99,102,241,0.15)" : "rgba(255,59,48,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>
+                    {h.type === "injection" ? "💵" : h.type === "vente" ? "✅" : "🛒"}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{h.label}</div>
+                    <div style={{ fontSize: 11, color: T.textSub }}>{h.date}</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: h.type === "achat" ? T.red : T.green }}>{h.type === "achat" ? "-" : "+"}{fmt(h.montant)}</div>
+                    {h.type === "injection" && <>
+                      <button onClick={() => { setEditIdx(realIdx); setMontant(String(h.montant)); setLabel(h.label); setShowInject(true); }} style={{ width: 28, height: 28, borderRadius: 8, background: T.surface2, border: "none", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>✏️</button>
+                      <button onClick={() => onDeleteInj(realIdx)} style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,59,48,0.08)", border: "none", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", color: T.red }}>🗑</button>
+                    </>}
+                  </div>
                 </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:13,fontWeight:600,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{h.label}</div>
-                  <div style={{fontSize:11,color:T.textSub}}>{h.date}</div>
-                </div>
-                <div style={{display:"flex",alignItems:"center",gap:6}}>
-                  <div style={{fontSize:14,fontWeight:800,color:h.type==="achat"?"#ef4444":"#22c55e"}}>{h.type==="achat"?"-":"+"}{fmt(h.montant)}</div>
-                  {h.type==="injection"&&<>
-                    <button onClick={()=>{setEditingIdx(realIdx);setMontant(String(h.montant));setLabel(h.label);setShowInject(true);}} style={{width:28,height:28,borderRadius:8,background:T.surface2,border:`1px solid ${T.border}`,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
-                    <button onClick={()=>onDeleteInjection(realIdx)} style={{width:28,height:28,borderRadius:8,background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>🗑</button>
-                  </>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {showInject&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:300}} onClick={()=>{setShowInject(false);setEditingIdx(null);setMontant("");setLabel("");}}>
-          <div style={{background:T.modalBg,borderRadius:"24px 24px 0 0",padding:"20px 20px 44px",width:"100%",maxWidth:500}} onClick={e=>e.stopPropagation()}>
-            <div style={{width:36,height:4,background:T.isDark?"#3A3A3C":"#D1D1D6",borderRadius:2,margin:"0 auto 20px"}}/>
-            <div style={{fontSize:18,fontWeight:800,color:T.text,marginBottom:18}}>{editingIdx!==null?"✏️ Modifier":"💵 Injecter des fonds"}</div>
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              <input style={inp} type="number" placeholder="Montant €" value={montant} onChange={e=>setMontant(e.target.value)}/>
-              <input style={inp} placeholder="Label (ex: Virement initial)" value={label} onChange={e=>setLabel(e.target.value)}/>
+              );
+            })}
+          </div>
+      }
+      {showInject && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 300 }} onClick={() => { setShowInject(false); setEditIdx(null); setMontant(""); setLabel(""); }}>
+          <div style={{ background: T.modalBg, borderRadius: "20px 20px 0 0", padding: "20px 16px 44px", width: "100%", maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: 36, height: 4, background: T.isDark ? "#3A3A3C" : "#D1D1D6", borderRadius: 2, margin: "0 auto 18px" }} />
+            <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 16 }}>{editIdx !== null ? "Modifier" : "Injecter des fonds"}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <input style={inp} type="number" placeholder="Montant €" value={montant} onChange={e => setMontant(e.target.value)} />
+              <input style={inp} placeholder="Label" value={label} onChange={e => setLabel(e.target.value)} />
             </div>
-            <div style={{display:"flex",gap:10,marginTop:18}}>
-              <button onClick={()=>{setShowInject(false);setEditingIdx(null);setMontant("");setLabel("");}} style={{flex:1,padding:"15px",background:T.isDark?"#3A3A3C":"#E5E5EA",border:"none",borderRadius:14,color:T.textSub,cursor:"pointer",fontSize:15,fontWeight:600,fontFamily:"inherit"}}>Annuler</button>
-              <button onClick={()=>{if(!montant)return;editingIdx!==null?onEditInjection(editingIdx,parseFloat(montant),label||"Injection"):onInjecter(parseFloat(montant),label||"Injection");setMontant("");setLabel("");setShowInject(false);setEditingIdx(null);}}
-                style={{flex:2,padding:"15px",background:montant?T.accentGreen:T.isDark?"#3A3A3C":"#E5E5EA",border:"none",borderRadius:14,color:montant?"#fff":T.textSub,fontWeight:600,cursor:montant?"pointer":"default",fontSize:15,fontFamily:"inherit"}}>
-                {editingIdx!==null?"Modifier":"Confirmer"}
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              <button onClick={() => { setShowInject(false); setEditIdx(null); setMontant(""); setLabel(""); }} style={{ flex: 1, padding: "14px", background: T.isDark ? "#2C2C2E" : "#E5E5EA", border: "none", borderRadius: 12, color: T.textSub, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Annuler</button>
+              <button onClick={() => { if (!montant) return; editIdx !== null ? onEditInj(editIdx, parseFloat(montant), label || "Injection") : onInjecter(parseFloat(montant), label || "Injection"); setMontant(""); setLabel(""); setShowInject(false); setEditIdx(null); }}
+                style={{ flex: 2, padding: "14px", background: montant ? T.green : T.isDark ? "#2C2C2E" : "#E5E5EA", border: "none", borderRadius: 12, color: montant ? "#fff" : T.textSub, fontWeight: 600, cursor: montant ? "pointer" : "default", fontSize: 15, fontFamily: "inherit" }}>
+                {editIdx !== null ? "Modifier" : "Confirmer"}
               </button>
             </div>
           </div>
@@ -456,196 +456,61 @@ function LiquiditeView({ data, onInjecter, onEditInjection, onDeleteInjection, T
   );
 }
 
-
-// ── SEALED VIEW ───────────────────────────────────────────────────────────────
-const SEALED_TYPES = ["ETB", "Display", "Autre"];
-
-function SealedModal({ item, onSave, onClose, T }) {
-  const empty = { name:"", type:"ETB", set:"", langue:"EN", statut:"Sealed", achat:"", valeur:"", qty:1, notes:"" };
-  const [form,setForm] = useState(item?{...item}:empty);
-  const s=(k,v)=>setForm(p=>({...p,[k]:v}));
-  const valid=form.name&&form.achat&&form.valeur;
-  const inp={background:T.isDark?"#2C2C2E":"#F2F2F7",border:"none",borderRadius:12,color:T.text,padding:"14px 16px",fontSize:15,outline:"none",width:"100%",WebkitAppearance:"none",fontFamily:"inherit"};
-  return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:300}} onClick={onClose}>
-      <div style={{background:T.modalBg,borderRadius:"24px 24px 0 0",padding:"24px 20px 44px",width:"100%",maxWidth:500,maxHeight:"92vh",overflowY:"auto",boxShadow:"0 -8px 32px rgba(0,0,0,0.15)"}} onClick={e=>e.stopPropagation()}>
-        <div style={{width:36,height:4,background:T.isDark?"#3A3A3C":"#D1D1D6",borderRadius:2,margin:"0 auto 20px"}}/>
-        <div style={{fontSize:18,fontWeight:800,color:T.text,marginBottom:18}}>{item?"Modifier":"Nouveau produit scellé"}</div>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <input style={inp} placeholder="Nom *" value={form.name} onChange={e=>s("name",e.target.value)}/>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <select style={{...inp,cursor:"pointer"}} value={form.type} onChange={e=>s("type",e.target.value)}>{SEALED_TYPES.map(t=><option key={t}>{t}</option>)}</select>
-            <input style={inp} placeholder="Set" value={form.set} onChange={e=>s("set",e.target.value)}/>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <select style={{...inp,cursor:"pointer"}} value={form.langue} onChange={e=>s("langue",e.target.value)}>{LANGUES.map(l=><option key={l}>{l}</option>)}</select>
-            <input style={inp} type="number" placeholder="Quantité" value={form.qty} onChange={e=>s("qty",e.target.value)}/>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <input style={inp} type="number" placeholder="Prix achat € (unitaire)" value={form.achat} onChange={e=>s("achat",e.target.value)}/>
-            <input style={inp} type="number" placeholder="Valeur actuelle € (unitaire)" value={form.valeur} onChange={e=>s("valeur",e.target.value)}/>
-          </div>
-          <input style={inp} placeholder="Notes..." value={form.notes} onChange={e=>s("notes",e.target.value)}/>
-        </div>
-        <div style={{display:"flex",gap:10,marginTop:18}}>
-          <button onClick={onClose} style={{flex:1,padding:"15px",background:T.isDark?"#3A3A3C":"#E5E5EA",border:"none",borderRadius:14,color:T.textSub,cursor:"pointer",fontSize:15,fontWeight:600,fontFamily:"inherit"}}>Annuler</button>
-          <button onClick={()=>valid&&onSave({...form,id:item?.id||Date.now(),achat:parseFloat(form.achat),valeur:parseFloat(form.valeur),qty:parseInt(form.qty)||1})}
-            style={{flex:2,padding:"15px",background:valid?T.accent:T.isDark?"#3A3A3C":"#E5E5EA",border:"none",borderRadius:14,color:valid?"#fff":T.textSub,fontWeight:600,cursor:valid?"pointer":"default",fontSize:15,fontFamily:"inherit"}}>
-            {item?"Sauvegarder":"Ajouter"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SealedView({ items, onAdd, onEdit, onDelete, T }) {
-  const [showModal,setShowModal]=useState(false);
-  const [editItem,setEditItem]=useState(null);
-  useEffect(()=>{const h=()=>{setEditItem(null);setShowModal(true);};document.addEventListener("sealed-add",h);return()=>document.removeEventListener("sealed-add",h);},[]);
-  const totalInvesti=items.reduce((s,i)=>s+i.achat*i.qty,0);
-  const totalValeur=items.reduce((s,i)=>s+i.valeur*i.qty,0);
-  const gain=totalValeur-totalInvesti;
-  const roi=parseFloat(pct(totalInvesti,totalValeur));
-  const grouped={ETB:[],Display:[],Autre:[]};
-  items.forEach(i=>{ if(grouped[i.type]) grouped[i.type].push(i); else grouped["Autre"].push(i); });
-  return (
-    <div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
-        {[["Investi",fmt(totalInvesti),"#60a5fa"],["Valeur",fmt(totalValeur),T.text],["P&L",(gain>=0?"+":"")+fmt(gain),gain>=0?"#22c55e":"#ef4444"]].map(([k,v,c])=>(
-          <div key={k} style={{background:T.surface,borderRadius:14,padding:"12px 10px",textAlign:"center",boxShadow:T.shadow}}>
-            <div style={{fontSize:10,color:T.textSub,textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>{k}</div>
-            <div style={{fontSize:15,fontWeight:800,color:c}}>{v}</div>
-          </div>
-        ))}
-      </div>
-      {totalInvesti>0&&(
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18,padding:"10px 14px",background:T.surface,borderRadius:12,border:`1px solid ${T.border}`}}>
-          <span style={{fontSize:18}}>{roi>=0?"📈":"📉"}</span>
-          <span style={{fontSize:14,fontWeight:800,color:roi>=0?"#22c55e":"#ef4444"}}>ROI {roi>=0?"+":""}{roi}%</span>
-          <span style={{fontSize:12,color:T.textSub,marginLeft:"auto"}}>{items.length} produit{items.length>1?"s":""}</span>
-        </div>
-      )}
-      {items.length===0?(
-        <div style={{textAlign:"center",padding:"60px 20px",color:T.textSub}}>
-          <div style={{fontSize:44,marginBottom:14}}>📦</div>
-          <div style={{fontSize:17,fontWeight:700,color:T.text,marginBottom:6}}>Aucun produit scellé</div>
-          <div style={{fontSize:14}}>Appuie sur + pour en ajouter</div>
-        </div>
-      ):SEALED_TYPES.map(type=>{
-        const group=grouped[type]||[];
-        if(group.length===0) return null;
-        return (
-          <div key={type} style={{marginBottom:24}}>
-            <div style={{fontSize:13,fontWeight:800,color:"#60a5fa",marginBottom:10}}>📦 {type}</div>
-            {group.map(item=>{
-              const g=(item.valeur-item.achat)*item.qty;
-              const gPct=parseFloat(pct(item.achat,item.valeur));
-              const up=g>=0;
-              return (
-                <div key={item.id} style={{marginBottom:10,borderRadius:16,overflow:"hidden",background:T.surface,boxShadow:T.shadow}}>
-                  <div style={{padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
-                    <div style={{width:4,height:52,borderRadius:2,background:up?"#22c55e":"#ef4444",flexShrink:0}}/>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:15,fontWeight:700,color:T.text,marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.name}</div>
-                      <div style={{fontSize:11,color:T.textSub,marginBottom:6}}>{item.set&&item.set!=="—"?item.set+" · ":""}{item.langue} · x{item.qty}</div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
-                        {[["Achat/u",fmt(item.achat),"#60a5fa"],["Actuel/u",fmt(item.valeur),T.text],["P&L total",(g>=0?"+":"")+fmt(g),up?"#22c55e":"#ef4444"]].map(([k,v,c])=>(
-                          <div key={k} style={{background:T.surface2,borderRadius:8,padding:"6px 8px",textAlign:"center"}}>
-                            <div style={{fontSize:9,color:T.textSub,textTransform:"uppercase",marginBottom:2}}>{k}</div>
-                            <div style={{fontSize:12,fontWeight:700,color:c}}>{v}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div style={{textAlign:"right",flexShrink:0}}>
-                      <div style={{fontSize:18,fontWeight:900,color:up?"#22c55e":"#ef4444"}}>{up?"+":""}{gPct}%</div>
-                      <div style={{display:"flex",gap:6,marginTop:8}}>
-                        <button onClick={()=>{setEditItem(item);setShowModal(true);}} style={{width:32,height:32,borderRadius:8,background:T.surface2,border:`1px solid ${T.border}`,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
-                        <button onClick={()=>onDelete(item.id)} style={{width:32,height:32,borderRadius:8,background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:"#ef4444"}}>🗑</button>
-                      </div>
-                    </div>
-                  </div>
-                  {item.notes&&<div style={{fontSize:12,color:T.textSub,padding:"0 16px 12px",fontStyle:"italic"}}>{item.notes}</div>}
-                </div>
-              );
-            })}
-          </div>
-        );
-      })}
-      {showModal&&<SealedModal item={editItem} onSave={item=>{onEdit?onEdit(item):onAdd(item);setShowModal(false);setEditItem(null);}} onClose={()=>{setShowModal(false);setEditItem(null);}} T={T}/>}
-    </div>
-  );
-}
-
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
-function Dashboard({ data, T, onGoLiquidite }) {
-  const allCards=TCGS.flatMap(t=>(data[t.id]||[]).filter(c=>!c.vendu));
-  const sealedItems=data.sealed||[];
-  const cardsInv=allCards.reduce((s,c)=>s+c.achat,0);
-  const cardsVal=allCards.reduce((s,c)=>s+c.valeur,0);
-  const sealedInv=sealedItems.reduce((s,i)=>s+i.achat*i.qty,0);
-  const sealedVal=sealedItems.reduce((s,i)=>s+i.valeur*i.qty,0);
-  const inv=cardsInv+sealedInv;
-  const val=cardsVal+sealedVal;
-  const gain=val-inv;
-  const roi=parseFloat(pct(inv,val));
-  const { solde,totalInjecte,totalAchats,totalVentes }=calcLiquidite(data);
-  const nbVendues=TCGS.flatMap(t=>(data[t.id]||[]).filter(c=>c.vendu)).length;
+function Dashboard({ data, onGoLiquidite, T }) {
+  const allCards = TCGS.flatMap(t => (data[t.id] || []).filter(c => !c.vendu));
+  const sealed = data.sealed || [];
+  const cardsInv = allCards.reduce((s, c) => s + c.achat, 0);
+  const cardsVal = allCards.reduce((s, c) => s + c.valeur, 0);
+  const sealedInv = sealed.reduce((s, i) => s + i.achat * i.qty, 0);
+  const sealedVal = sealed.reduce((s, i) => s + i.valeur * i.qty, 0);
+  const inv = cardsInv + sealedInv;
+  const val = cardsVal + sealedVal;
+  const gain = val - inv;
+  const roi = inv === 0 ? 0 : ((val - inv) / inv * 100).toFixed(1);
+  const hist = data.liquidite?.historique || [];
+  const totalInjecte = hist.filter(h => h.type === "injection").reduce((s, h) => s + h.montant, 0);
+  const totalAchats = allCards.filter(c => c.surLiquidite && !c.vendu).reduce((s, c) => s + c.achat, 0);
+  const totalVentes = allCards.filter(c => c.vendu && c.surLiquidite && c.prixVente).reduce((s, c) => s + c.prixVente, 0);
+  const solde = totalInjecte - totalAchats + totalVentes;
   return (
     <div>
-      <div style={{background:"linear-gradient(135deg,#131d35,#0f1624)",borderRadius:22,padding:"24px 20px",marginBottom:20,border:"1px solid rgba(99,102,241,0.2)",position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"radial-gradient(circle,rgba(245,158,11,0.1),transparent)"}}/>
-        <div style={{fontSize:12,color:"#64748b",textTransform:"uppercase",letterSpacing:"2px",marginBottom:6}}>Portefeuille total</div>
-        <div style={{fontSize:38,fontWeight:900,color:"#f1f5f9",letterSpacing:"-1px",marginBottom:8}}>{fmt(val)}</div>
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
-          <span style={{fontSize:15,fontWeight:700,color:gain>=0?"#22c55e":"#ef4444"}}>{gain>=0?"▲ +":"▼ "}{fmt(gain)}</span>
-          <span style={{fontSize:12,color:T.textSub}}>vs {fmt(inv)} · {allCards.length} carte{allCards.length>1?"s":""}{sealedItems.length>0?" · "+sealedItems.length+" scellé"+(sealedItems.length>1?"s":""):""}</span>
+      <div style={{ background: T.surface, borderRadius: 18, padding: "20px 16px", marginBottom: 14, boxShadow: T.shadowMd }}>
+        <div style={{ fontSize: 12, color: T.textSub, marginBottom: 4 }}>Portefeuille total</div>
+        <div style={{ fontSize: 36, fontWeight: 700, color: T.text, letterSpacing: "-1px", marginBottom: 6 }}>{fmt(val)}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: gain >= 0 ? T.green : T.red }}>{gain >= 0 ? "▲ +" : "▼ "}{fmt(gain)}</span>
+          <span style={{ fontSize: 12, color: T.textSub }}>· {fmt(inv)} investi</span>
         </div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          <div style={{display:"inline-flex",alignItems:"center",padding:"6px 14px",borderRadius:20,background:(roi>=0?"rgba(34,197,94,":"rgba(239,68,68,")+"0.15)",border:`1px solid ${(roi>=0?"rgba(34,197,94,":"rgba(239,68,68,")+"0.3)"}`}}>
-            <span style={{fontSize:14,fontWeight:800,color:roi>=0?"#22c55e":"#ef4444"}}>ROI {roi>=0?"+":""}{roi}%</span>
-          </div>
-
+        <div style={{ display: "inline-flex", padding: "5px 12px", borderRadius: 20, background: parseFloat(roi) >= 0 ? "rgba(52,199,89,0.12)" : "rgba(255,59,48,0.12)" }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: parseFloat(roi) >= 0 ? T.green : T.red }}>ROI {parseFloat(roi) >= 0 ? "+" : ""}{roi}% · {allCards.length} cartes</span>
         </div>
       </div>
-      <div style={{fontSize:12,color:T.textSub,fontWeight:600,letterSpacing:"-0.2px",marginBottom:8,paddingLeft:2}}>Par TCG</div>
-      <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:4,marginBottom:14,scrollbarWidth:"none"}}>
-        {TCGS.map(tcg=>{
-          const cards=(data[tcg.id]||[]).filter(c=>!c.vendu);
-          const i=cards.reduce((s,c)=>s+c.achat,0);
-          const v=cards.reduce((s,c)=>s+c.valeur,0);
+      <div style={{ fontSize: 12, color: T.textSub, fontWeight: 600, marginBottom: 10 }}>Par TCG</div>
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, marginBottom: 16, scrollbarWidth: "none" }}>
+        {TCGS.map(tcg => {
+          const cards = (data[tcg.id] || []).filter(c => !c.vendu);
+          const i = cards.reduce((s, c) => s + c.achat, 0);
+          const v = cards.reduce((s, c) => s + c.valeur, 0);
           return (
-            <div key={tcg.id} style={{flexShrink:0,width:148,background:T.surface,borderRadius:16,padding:"12px 12px",borderTop:`3px solid ${tcg.color}`,boxShadow:T.shadow}}>
-              <div style={{fontSize:12,fontWeight:700,color:tcg.color,marginBottom:8,display:"flex",alignItems:"center",gap:4}}>{tcg.icon} {tcg.label}</div>
-              <div style={{fontSize:11,color:T.textSub,marginBottom:1}}>Investi</div>
-              <div style={{fontSize:16,fontWeight:700,color:T.text,marginBottom:2}}>{fmt(i)}</div>
-              <div style={{fontSize:13,color:(v-i)>=0?"#22c55e":"#ef4444",marginBottom:4}}>{(v-i)>=0?"+":""}{fmt(v-i)}</div>
-              <div style={{fontSize:11,color:T.textSub}}>{cards.length} carte{cards.length>1?"s":""}</div>
+            <div key={tcg.id} style={{ flexShrink: 0, width: 140, background: T.surface, borderRadius: 14, padding: "14px 12px", borderTop: `3px solid ${tcg.color}`, boxShadow: T.shadow }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: tcg.color, marginBottom: 8 }}>{tcg.icon} {tcg.label}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 3 }}>{fmt(i)}</div>
+              <div style={{ fontSize: 12, color: (v - i) >= 0 ? T.green : T.red }}>{(v - i) >= 0 ? "+" : ""}{fmt(v - i)}</div>
+              <div style={{ fontSize: 11, color: T.textSub, marginTop: 4 }}>{cards.length} carte{cards.length > 1 ? "s" : ""}</div>
             </div>
           );
         })}
       </div>
-
-      <div style={{fontSize:12,color:T.textSub,fontWeight:600,letterSpacing:"-0.2px",marginBottom:8,paddingLeft:2}}>Liquidité</div>
-      <div onClick={()=>onGoLiquidite()} style={{background:T.surface,borderRadius:16,padding:"14px 16px",cursor:"pointer",boxShadow:T.shadowMd}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-          <div>
-            <div style={{fontSize:11,color:T.textSub,marginBottom:2}}>Solde disponible</div>
-            <div style={{fontSize:26,fontWeight:900,color:solde>=0?"#22c55e":"#ef4444"}}>{fmt(solde)}</div>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:32}}>💰</span>
-            <span style={{fontSize:18,color:T.textSub}}>›</span>
-          </div>
+      <div style={{ fontSize: 12, color: T.textSub, fontWeight: 600, marginBottom: 10 }}>Liquidité</div>
+      <div onClick={onGoLiquidite} style={{ background: T.surface, borderRadius: 14, padding: "16px", boxShadow: T.shadowMd, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <div style={{ fontSize: 11, color: T.textSub, marginBottom: 3 }}>Solde disponible</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: solde >= 0 ? T.green : T.red }}>{fmt(solde)}</div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-          {[["Injecté",fmt(totalInjecte),"#60a5fa"],["Dépensé",fmt(totalAchats),"#ef4444"],["Récupéré",fmt(totalVentes),"#22c55e"]].map(([k,v,c])=>(
-            <div key={k} style={{background:T.isDark?"#2C2C2E":"#F2F2F7",borderRadius:10,padding:"8px 6px",textAlign:"center"}}>
-              <div style={{fontSize:9,color:T.textSub,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:3}}>{k}</div>
-              <div style={{fontSize:13,fontWeight:700,color:c}}>{v}</div>
-            </div>
-          ))}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 28 }}>💰</span>
+          <span style={{ fontSize: 20, color: T.textSub }}>›</span>
         </div>
       </div>
     </div>
@@ -654,105 +519,106 @@ function Dashboard({ data, T, onGoLiquidite }) {
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
 export default function App() {
-  const [data,setData]=useState(loadData);
-  const [activeTab,setActiveTab]=useState("dashboard");
-  const [modal,setModal]=useState(null);
-  const [theme,setTheme]=useState(loadTheme);
-  const T=THEMES[theme];
+  const [data, setData] = useState(loadData);
+  const [tab, setTab] = useState("dashboard");
+  const [modal, setModal] = useState(null);
+  const [theme, setTheme] = useState(loadTheme);
+  const [images, setImages] = useState(loadImages);
+  const T = theme === "dark" ? DARK : LIGHT;
 
-  useEffect(()=>{saveData(data);},[data]);
-  useEffect(()=>{try{localStorage.setItem(THEME_KEY,theme);}catch{}},[theme]);
+  useEffect(() => { saveData(data); }, [data]);
+  useEffect(() => { try { localStorage.setItem(THEME_KEY, theme); } catch {} }, [theme]);
+
+  function handleUpload(cardId, b64) {
+    const stored = loadImages();
+    stored[String(cardId)] = b64;
+    try { localStorage.setItem(IMG_KEY, JSON.stringify(stored)); } catch {}
+    setImages({ ...stored });
+  }
 
   function handleSave(card) {
-    const sourceTcg = activeTab;
-    const targetTcg = card._tcg || sourceTcg;
-    setData(prev=>{
-      let nd = {...prev};
-      const sourceList = prev[sourceTcg]||[];
-      const exists = sourceList.find(c=>c.id===card.id);
+    const src = tab;
+    const tgt = card._tcg || src;
+    setData(prev => {
+      const srcList = prev[src] || [];
+      const exists = srcList.find(c => c.id === card.id);
       const wasVendu = exists?.vendu;
-      if(exists && targetTcg !== sourceTcg) {
-        // Move card to new TCG
-        nd[sourceTcg] = sourceList.filter(c=>c.id!==card.id);
-        nd[targetTcg] = [...(prev[targetTcg]||[]), card];
-      } else if(exists) {
-        nd[sourceTcg] = sourceList.map(c=>c.id===card.id?card:c);
+      let nd = { ...prev };
+      if (exists && tgt !== src) {
+        nd[src] = srcList.filter(c => c.id !== card.id);
+        nd[tgt] = [...(prev[tgt] || []), card];
+      } else if (exists) {
+        nd[src] = srcList.map(c => c.id === card.id ? card : c);
       } else {
-        nd[targetTcg] = [...(prev[targetTcg]||[]), card];
+        nd[tgt] = [...(prev[tgt] || []), card];
       }
-      let hist=[...(prev.liquidite?.historique||[])];
-      if(!exists&&card.surLiquidite) hist.push({type:"achat",montant:card.achat,label:`Achat : ${card.name}`,date:dateStr()});
-      if(!wasVendu&&card.vendu&&card.prixVente&&card.surLiquidite) hist.push({type:"vente",montant:card.prixVente,label:`Vente : ${card.name}`,date:dateStr()});
-      return {...nd,liquidite:{...prev.liquidite,historique:hist}};
+      let hist = [...(prev.liquidite?.historique || [])];
+      if (!exists && card.surLiquidite) hist.push({ type: "achat", montant: card.achat, label: `Achat : ${card.name}`, date: dateStr() });
+      if (!wasVendu && card.vendu && card.prixVente && card.surLiquidite) hist.push({ type: "vente", montant: card.prixVente, label: `Vente : ${card.name}`, date: dateStr() });
+      return { ...nd, liquidite: { ...prev.liquidite, historique: hist } };
     });
     setModal(null);
   }
 
-  function handleDelete(tcg,id){setData(prev=>({...prev,[tcg]:(prev[tcg]||[]).filter(c=>c.id!==id)}));}
-  function handleSealedSave(item){setData(prev=>{const list=prev.sealed||[];const exists=list.find(i=>i.id===item.id);return{...prev,sealed:exists?list.map(i=>i.id===item.id?item:i):[...list,item]};});}
-  function handleSealedDelete(id){setData(prev=>({...prev,sealed:(prev.sealed||[]).filter(i=>i.id!==id)}));}
-  function handleRestaurer(tcg,id){setData(prev=>({...prev,[tcg]:(prev[tcg]||[]).map(c=>c.id===id?{...c,vendu:false,prixVente:null}:c)}));}
-  function handleInjecter(m,l){setData(prev=>({...prev,liquidite:{...prev.liquidite,historique:[...(prev.liquidite?.historique||[]),{type:"injection",montant:m,label:l,date:dateStr()}]}}));}
-  function handleEditInjection(idx,m,l){setData(prev=>{const h=[...(prev.liquidite?.historique||[])];h[idx]={...h[idx],montant:m,label:l};return{...prev,liquidite:{...prev.liquidite,historique:h}};});}
-  function handleDeleteInjection(idx){setData(prev=>{const h=[...(prev.liquidite?.historique||[])];h.splice(idx,1);return{...prev,liquidite:{...prev.liquidite,historique:h}};});}
+  function handleDelete(tcg, id) { setData(p => ({ ...p, [tcg]: (p[tcg] || []).filter(c => c.id !== id) })); }
+  function handleRestaurer(tcg, id) { setData(p => ({ ...p, [tcg]: (p[tcg] || []).map(c => c.id === id ? { ...c, vendu: false, prixVente: null } : c) })); }
+  function handleSealedSave(item) { setData(p => { const l = p.sealed || []; const e = l.find(i => i.id === item.id); return { ...p, sealed: e ? l.map(i => i.id === item.id ? item : i) : [...l, item] }; }); }
+  function handleSealedDelete(id) { setData(p => ({ ...p, sealed: (p.sealed || []).filter(i => i.id !== id) })); }
+  function handleInjecter(m, l) { setData(p => ({ ...p, liquidite: { ...p.liquidite, historique: [...(p.liquidite?.historique || []), { type: "injection", montant: m, label: l, date: dateStr() }] } })); }
+  function handleEditInj(idx, m, l) { setData(p => { const h = [...(p.liquidite?.historique || [])]; h[idx] = { ...h[idx], montant: m, label: l }; return { ...p, liquidite: { ...p.liquidite, historique: h } }; }); }
+  function handleDeleteInj(idx) { setData(p => { const h = [...(p.liquidite?.historique || [])]; h.splice(idx, 1); return { ...p, liquidite: { ...p.liquidite, historique: h } }; }); }
 
-  const activeTcg=TCGS.find(t=>t.id===activeTab);
-  const nbVendues=TCGS.flatMap(t=>(data[t.id]||[]).filter(c=>c.vendu)).length;
+  const activeTcg = TCGS.find(t => t.id === tab);
+  const nbVendues = TCGS.flatMap(t => (data[t.id] || []).filter(c => c.vendu)).length;
 
   return (
     <>
-      <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-      <style>{`
-        *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-        body{margin:0;padding:0;overscroll-behavior:none;-webkit-font-smoothing:antialiased;}
-        ::-webkit-scrollbar{display:none;}
-        input,select,button{font-family:inherit;}
-        select option{background:#fff;color:#000;}
-      `}</style>
-      <div style={{minHeight:"100dvh",background:T.bg,fontFamily:"-apple-system,'SF Pro Display','Inter',sans-serif",color:T.text,paddingBottom:90}}>
+      <style>{`* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; } body { margin: 0; padding: 0; overscroll-behavior: none; -webkit-font-smoothing: antialiased; } ::-webkit-scrollbar { display: none; } input, select, button { font-family: inherit; } select option { background: #fff; color: #000; }`}</style>
+      <div style={{ minHeight: "100dvh", background: T.bg, fontFamily: "-apple-system, 'Helvetica Neue', sans-serif", color: T.text, paddingBottom: 88 }}>
         {/* HEADER */}
-        <div style={{padding:"48px 16px 0px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(145deg,#FF9500,#FF3B30)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,boxShadow:"0 2px 8px rgba(255,59,48,0.3)"}}>⚡</div>
-            <span style={{fontSize:20,fontWeight:700,letterSpacing:"-0.5px",color:T.text}}>PokéVault</span>
+        <div style={{ padding: "52px 16px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(145deg,#FF9500,#FF3B30)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>⚡</div>
+            <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.5px" }}>PokéVault</span>
           </div>
-          <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <button onClick={()=>setTheme(t=>t==="dark"?"light":"dark")} style={{width:34,height:34,borderRadius:"50%",background:T.surface,border:`1px solid ${T.border}`,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:T.shadow}}>{theme==="dark"?"☀️":"🌙"}</button>
-            {(activeTcg||activeTab==="sealed")&&(
-              <button onClick={()=>activeTcg?setModal({tcg:activeTab}):document.dispatchEvent(new CustomEvent("sealed-add"))}
-                style={{width:34,height:34,borderRadius:"50%",background:T.accent,border:"none",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 2px 8px ${T.accent}55`}}>+</button>
-            )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => setTheme(t => t === "dark" ? "light" : "dark")} style={{ width: 34, height: 34, borderRadius: "50%", background: T.surface, border: `1px solid ${T.border}`, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>{theme === "dark" ? "☀️" : "🌙"}</button>
+            {activeTcg && <button onClick={() => setModal({ tcg: tab })} style={{ width: 34, height: 34, borderRadius: "50%", background: T.accent, border: "none", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>}
+            {tab === "sealed" && <button onClick={() => setModal({ tcg: "sealed" })} style={{ width: 34, height: 34, borderRadius: "50%", background: T.accent, border: "none", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>}
           </div>
         </div>
-        {/* PAGE TITLE */}
-        <div style={{padding:"10px 16px 10px"}}>
-          <div style={{fontSize:26,fontWeight:700,letterSpacing:"-0.8px",color:T.text}}>
-            {activeTab==="dashboard"?"Vue d'ensemble":activeTab==="liquidite"?"Liquidité":activeTab==="vendues"?"Cartes vendues":activeTab==="sealed"?"Produits scellés":activeTcg?.label}
+        {/* TITLE */}
+        <div style={{ padding: "10px 16px 14px" }}>
+          <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.8px" }}>
+            {tab === "dashboard" ? "Vue d'ensemble" : tab === "liquidite" ? "Liquidité" : tab === "vendues" ? "Cartes vendues" : tab === "sealed" ? "Produits scellés" : activeTcg?.label}
           </div>
         </div>
-        <div style={{padding:"0 12px",opacity:1}}>
-          {activeTab==="dashboard"&&<Dashboard data={data} T={T} onGoLiquidite={()=>setActiveTab("liquidite")}/>}
-          {activeTcg&&<TcgView tcg={activeTcg} cards={data[activeTab]||[]} onEdit={card=>setModal({tcg:activeTab,card})} onDelete={handleDelete} T={T} images={images} onUpload={handleUploadImage}/>}
-          {activeTab==="liquidite"&&<LiquiditeView data={data} onInjecter={handleInjecter} onEditInjection={handleEditInjection} onDeleteInjection={handleDeleteInjection} T={T}/>}
-          {activeTab==="sealed"&&<SealedView items={data.sealed||[]} onAdd={handleSealedSave} onEdit={handleSealedSave} onDelete={handleSealedDelete} T={T}/>}
-          {activeTab==="vendues"&&<VenduesView data={data} onRestaurer={handleRestaurer} T={T}/>}
+        {/* CONTENT */}
+        <div style={{ padding: "0 14px" }}>
+          {tab === "dashboard" && <Dashboard data={data} onGoLiquidite={() => setTab("liquidite")} T={T} />}
+          {activeTcg && <TcgView tcg={activeTcg} cards={data[tab] || []} images={images} onEdit={card => setModal({ tcg: tab, card })} onDelete={handleDelete} onUpload={handleUpload} T={T} />}
+          {tab === "liquidite" && <LiquiditeView data={data} onInjecter={handleInjecter} onEditInj={handleEditInj} onDeleteInj={handleDeleteInj} T={T} />}
+          {tab === "sealed" && <SealedView items={data.sealed || []} onSave={handleSealedSave} onDelete={handleSealedDelete} T={T} />}
+          {tab === "vendues" && <VenduesView data={data} onRestaurer={handleRestaurer} T={T} />}
         </div>
       </div>
-      {/* BOTTOM NAV - Apple Tab Bar */}
-      <div style={{position:"fixed",bottom:0,left:0,right:0,background:T.navBg,borderTop:`1px solid ${T.border}`,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",paddingBottom:"env(safe-area-inset-bottom,8px)",display:"flex",justifyContent:"space-around",zIndex:100}}>
-        {NAV.map(n=>{
-          const active=activeTab===n.id;
-          const color=active?T.accent:T.textSub;
+      {/* NAV */}
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: T.navBg, borderTop: `1px solid ${T.border}`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", paddingBottom: "env(safe-area-inset-bottom, 8px)", display: "flex", justifyContent: "space-around", zIndex: 100 }}>
+        {NAV.map(n => {
+          const active = tab === n.id;
+          const color = active ? T.accent : T.textSub;
           return (
-            <button key={n.id} onClick={()=>setActiveTab(n.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,background:"none",border:"none",cursor:"pointer",padding:"8px 6px 4px",minWidth:52,position:"relative",transition:"all 0.15s"}}>
-              <span style={{fontSize:22,opacity:active?1:0.5,transition:"all 0.15s",filter:active?"none":"grayscale(0.3)",display:"flex",alignItems:"center",justifyContent:"center"}}>{n.icon}</span>
-              <span style={{fontSize:10,fontWeight:active?600:400,color,transition:"color 0.15s",letterSpacing:"-0.2px"}}>{n.label}</span>
-              {n.id==="vendues"&&nbVendues>0&&!active&&<div style={{position:"absolute",top:4,right:8,minWidth:16,height:16,borderRadius:8,background:T.accentRed,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#fff",padding:"0 3px"}}>{nbVendues}</div>}
+            <button key={n.id} onClick={() => setTab(n.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, background: "none", border: "none", cursor: "pointer", padding: "8px 6px 4px", minWidth: 48, position: "relative" }}>
+              <span style={{ fontSize: 22, opacity: active ? 1 : 0.45 }}>{n.icon}</span>
+              <span style={{ fontSize: 10, fontWeight: active ? 600 : 400, color }}>{n.label}</span>
+              {active && <div style={{ width: 16, height: 3, borderRadius: 2, background: color, marginTop: 1 }} />}
+              {n.id === "vendues" && nbVendues > 0 && !active && <div style={{ position: "absolute", top: 4, right: 6, width: 16, height: 16, borderRadius: 8, background: T.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff" }}>{nbVendues}</div>}
             </button>
           );
         })}
       </div>
-      {modal&&<CardModal tcg={modal.tcg} card={modal.card} onSave={handleSave} onClose={()=>setModal(null)} T={T}/>}
+      {modal && modal.tcg !== "sealed" && <CardModal tcg={modal.tcg} card={modal.card} onSave={handleSave} onClose={() => setModal(null)} T={T} />}
+      {modal && modal.tcg === "sealed" && <SealedModal item={modal.card} onSave={item => { handleSealedSave(item); setModal(null); }} onClose={() => setModal(null)} T={T} />}
     </>
   );
 }
