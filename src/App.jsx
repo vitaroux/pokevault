@@ -688,7 +688,7 @@ function Dashboard({ data, T, onGoLiquidite }) {
 }
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
-export default function App() {
+function AppInner() {
   const [data,setData]=useState(loadData);
   const [activeTab,setActiveTab]=useState("dashboard");
   const [modal,setModal]=useState(null);
@@ -793,3 +793,5 @@ export default function App() {
     </>
   );
 }
+
+export default function App() { return <ErrorBoundary><AppInner/></ErrorBoundary>; }
