@@ -19,7 +19,20 @@ function calcLiquidite(data) {
   const totalVentes = all.filter(c=>c.vendu&&c.surLiquidite&&c.prixVente).reduce((s,c)=>s+c.prixVente,0);
   return { totalInjecte, totalAchats, totalVentes, solde: totalInjecte-totalAchats+totalVentes };
 }
-function loadData() { try { const r=localStorage.getItem(STORAGE_KEY); return r?JSON.parse(r):defaultData; } catch { return defaultData; } }
+function loadData() {
+  try {
+    const r = localStorage.getItem(STORAGE_KEY);
+    const d = r ? JSON.parse(r) : defaultData;
+    // Ensure all required keys exist
+    return {
+      pokemon: d.pokemon || [],
+      op: d.op || [],
+      dbz: d.dbz || [],
+      sealed: d.sealed || [],
+      liquidite: d.liquidite || { historique: [] },
+    };
+  } catch { return defaultData; }
+}
 function saveData(d) { try { localStorage.setItem(STORAGE_KEY,JSON.stringify(d)); } catch {} }
 function loadTheme() { try { return localStorage.getItem(THEME_KEY)||"light"; } catch { return "light"; } }
 function loadImages() { try { return JSON.parse(localStorage.getItem(IMG_KEY)||"{}"); } catch { return {}; } }
