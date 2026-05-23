@@ -122,49 +122,51 @@ const NAV = [
 ];
 
 // ── CARD IMAGE ────────────────────────────────────────────────────────────────
-function CardImage({ card, tcg, T, style, hideControls, externalImg, onImgChange }) {
-  const [localImg,setLocalImg] = useState(()=>loadImages()[card.id]||null);
-  const [autoImg,setAutoImg] = useState(null);
-  const [loading,setLoading] = useState(false);
+function CardImage({ card, T, style, hideControls }) {
+  const [img, setImg] = useState(null);
 
-  // Sync external changes back to local
-  useEffect(()=>{ if(externalImg!==undefined) setLocalImg(externalImg); },[externalImg]);
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(IMG_KEY) || "{}");
+      const found = stored[String(card.id)];
+      if (found) setImg(found);
+    } catch {}
+  }, [card.id]);
 
-  const customImg = localImg;
-  const setCustomImg = (v) => { setLocalImg(v); onImgChange&&onImgChange(v); };
+  function handleUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const b64 = ev.target.result;
+      try {
+        const stored = JSON.parse(localStorage.getItem(IMG_KEY) || "{}");
+        stored[String(card.id)] = b64;
+        localStorage.setItem(IMG_KEY, JSON.stringify(stored));
+      } catch {}
+      setImg(b64);
+    };
+    reader.readAsDataURL(file);
+  }
 
-  useEffect(()=>{
-    const all = loadImages();
-    const saved = all[card.id] || all[String(card.id)];
-    if(saved){ setLocalImg(saved); setLoading(false); onImgChange&&onImgChange(saved); return; }
-    if(tcg==="pokemon"){
-      setLoading(true);
-      fetchPokemonImage(card.name).then(url=>{setAutoImg(url);setLoading(false);});
-    }
-  },[card.id]);
-
-  const displayed=customImg||autoImg;
-  // DEBUG
-  useEffect(()=>{
-    const all=loadImages();
-    console.log("CardImage mount - card.id:", card.id, "type:", typeof card.id, "keys:", Object.keys(all), "found:", all[card.id]||all[String(card.id)]?"YES":"NO");
-  },[]);
-  function handleUpload(e){const file=e.target.files?.[0];if(!file)return;const r=new FileReader();r.onload=ev=>{saveImage(card.id,ev.target.result);setCustomImg(ev.target.result);setLoading(false);};r.readAsDataURL(file);}
-  function handleReset(e){e.stopPropagation();deleteImage(card.id);setCustomImg(null);}
   return (
-    <div style={{position:"relative",borderRadius:12,overflow:"hidden",background:T.isDark?"#2C2C2E":"#F2F2F7",display:"flex",alignItems:"center",justifyContent:"center",...style}}>
-      {loading&&<div style={{color:T.textSub,fontSize:11}}>...</div>}
-      {!loading&&displayed&&<img src={displayed} alt={card.name} style={{width:"100%",height:"100%",objectFit:"contain"}} onError={e=>{e.target.style.display="none";}}/>}
-      {!loading&&!displayed&&<div style={{textAlign:"center",color:T.textSub,fontSize:20}}>🃏</div>}
-      <div style={{position:"absolute",bottom:4,right:4,display:"flex",gap:4}}>
-        <label style={{width:24,height:24,borderRadius:6,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12}}>
-          📷<input type="file" accept="image/*" style={{display:"none"}} onChange={handleUpload}/>
+    <div style={{ position: "relative", background: T.isDark ? "#2C2C2E" : "#E5E5EA", display: "flex", alignItems: "center", justifyContent: "center", ...style }}>
+      {img
+        ? <img src={img} alt={card.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+        : <div style={{ textAlign: "center", color: T.textSub, padding: 8 }}>
+            <div style={{ fontSize: 28, marginBottom: 4 }}>🃏</div>
+            {!hideControls && <div style={{ fontSize: 10, color: T.textSub }}>Ajouter une photo</div>}
+          </div>
+      }
+      {!hideControls && (
+        <label style={{ position: "absolute", bottom: 6, right: 6, width: 28, height: 28, borderRadius: 8, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 14 }}>
+          📷<input type="file" accept="image/*" style={{ display: "none" }} onChange={handleUpload} />
         </label>
-        {customImg&&<button onClick={handleReset} style={{width:24,height:24,borderRadius:6,background:"rgba(239,68,68,0.7)",border:"none",color:"#fff",cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
-      </div>
+      )}
     </div>
   );
 }
+
 
 // ── CARD MODAL ────────────────────────────────────────────────────────────────
 function CardModal({ tcg, card, onSave, onClose, T }) {
@@ -221,14 +223,13 @@ function CardModal({ tcg, card, onSave, onClose, T }) {
 // ── CARD GRID ITEM ────────────────────────────────────────────────────────────
 function CardGridItem({ card, tcg, tcgColor, onEdit, onDelete, T }) {
   const [open,setOpen]=useState(false);
-  const [cardImg,setCardImg]=useState(()=>loadImages()[card.id]||null);
   const gain=card.valeur-card.achat;
   const gainPct=parseFloat(pct(card.achat,card.valeur));
   const up=gain>=0;
   return (
     <div style={{borderRadius:14,overflow:"hidden",background:T.isDark?"#1C1C1E":"#e5e5ea",position:"relative",aspectRatio:"2/3"}}>
       <div onClick={()=>setOpen(!open)} style={{cursor:"pointer",height:"100%",position:"relative"}}>
-        <CardImage card={card} tcg={tcg} T={T} style={{position:"absolute",inset:0,borderRadius:0,height:"100%",width:"100%"}} externalImg={cardImg} onImgChange={setCardImg} hideControls={true}/>
+        <CardImage card={card} tcg={tcg} T={T} style={{position:"absolute",inset:0,borderRadius:0,height:"100%",width:"100%"}} hideControls={true}/>
         {/* Price overlay bottom */}
         <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"20px 8px 8px",background:"linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)"}}>
           <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.8)",marginBottom:1}}>{fmt(card.achat)}</div>
