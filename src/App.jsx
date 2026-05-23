@@ -528,6 +528,7 @@ export default function App() {
 
   useEffect(() => { saveData(data); }, [data]);
   useEffect(() => { try { localStorage.setItem(THEME_KEY, theme); } catch {} }, [theme]);
+  useEffect(() => { setImages(loadImages()); }, [tab]);
 
   function handleUpload(cardId, b64) {
     const stored = loadImages();
