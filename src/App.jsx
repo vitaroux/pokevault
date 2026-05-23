@@ -531,9 +531,14 @@ export default function App() {
   useEffect(() => { setImages(loadImages()); }, [tab]);
 
   function handleUpload(cardId, b64) {
+    const key = String(cardId);
     const stored = loadImages();
-    stored[String(cardId)] = b64;
-    try { localStorage.setItem(IMG_KEY, JSON.stringify(stored)); } catch {}
+    stored[key] = b64;
+    try {
+      localStorage.setItem(IMG_KEY, JSON.stringify(stored));
+      const verify = JSON.parse(localStorage.getItem(IMG_KEY) || "{}");
+      alert("Photo sauvegardée ! Clé: " + key + " - OK: " + (verify[key] ? "OUI" : "NON"));
+    } catch(e) { alert("Erreur: " + e.message); }
     setImages({ ...stored });
   }
 
