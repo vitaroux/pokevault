@@ -293,71 +293,26 @@ function CardListItem({ card, tcg, tcgColor, onEdit, onDelete, T, img, onUpload 
 
 // ── TCG VIEW ──────────────────────────────────────────────────────────────────
 function TcgView({ tcg, cards, onEdit, onDelete, T, images, onUpload }) {
-  const [viewMode,setViewMode]=useState("grid");
-  const [sort,setSort]=useState("achat-desc");
-  const [showSort,setShowSort]=useState(false);
-  const actives=[...cards.filter(c=>!c.vendu)].sort((a,b)=>{
-    if(sort==="achat-asc") return a.achat-b.achat;
-    if(sort==="achat-desc") return b.achat-a.achat;
-    if(sort==="valeur-asc") return a.valeur-b.valeur;
-    if(sort==="valeur-desc") return b.valeur-a.valeur;
-    return 0;
-  });
-  const inv=actives.reduce((s,c)=>s+c.achat,0);
-  const val=actives.reduce((s,c)=>s+c.valeur,0);
-  const gain=val-inv;
-  const roi=parseFloat(pct(inv,val));
+  const actives = cards.filter(c=>!c.vendu);
   return (
     <div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
-        {[["Investi",fmt(inv),"#60a5fa"],["Valeur",fmt(val),T.text],["P&L",(gain>=0?"+":"")+fmt(gain),gain>=0?"#22c55e":"#ef4444"]].map(([k,v,c])=>(
-          <div key={k} style={{background:T.surface,borderRadius:14,padding:"12px 10px",textAlign:"center",boxShadow:T.shadow}}>
-            <div style={{fontSize:10,color:T.textSub,textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>{k}</div>
-            <div style={{fontSize:15,fontWeight:800,color:c}}>{v}</div>
-          </div>
-        ))}
+      <div style={{padding:16,color:T.text,fontSize:16}}>
+        {actives.length} carte{actives.length>1?"s":""}
       </div>
-      {inv>0&&(
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,padding:"10px 14px",background:T.surface,borderRadius:14,boxShadow:T.shadow}}>
-          <span style={{fontSize:12,color:T.textSub}}>{actives.length} carte{actives.length>1?"s":""}</span>
-          {/* Sort */}
-          <div style={{position:"relative"}}>
-            <button onClick={()=>setShowSort(s=>!s)} style={{padding:"4px 10px",borderRadius:8,fontSize:12,border:`1px solid ${T.border}`,cursor:"pointer",background:T.surface2,color:T.textSub,fontFamily:"inherit",display:"flex",alignItems:"center",gap:4}}>
-              ⇅ {sort==="achat-asc"?"Achat ↑":sort==="achat-desc"?"Achat ↓":sort==="valeur-asc"?"Actuel ↑":"Actuel ↓"}
-            </button>
-            {showSort&&(
-              <div style={{position:"absolute",right:0,top:36,background:T.modalBg,border:`1px solid ${T.border2}`,borderRadius:12,overflow:"hidden",zIndex:50,minWidth:140,boxShadow:"0 8px 24px rgba(0,0,0,0.3)"}}>
-                {[["achat-desc","Achat ↓"],["achat-asc","Achat ↑"],["valeur-desc","Actuel ↓"],["valeur-asc","Actuel ↑"]].map(([v,l])=>(
-                  <button key={v} onClick={()=>{setSort(v);setShowSort(false);}} style={{display:"block",width:"100%",padding:"12px 14px",textAlign:"left",background:sort===v?T.accent+"15":"transparent",color:sort===v?T.accent:T.text,border:"none",cursor:"pointer",fontSize:13,fontWeight:sort===v?700:500,fontFamily:"inherit"}}>
-                    {l}
-                  </button>
-                ))}
-              </div>
-            )}
+      {actives.map(card=>(
+        <div key={card.id} style={{padding:"12px 16px",marginBottom:8,background:T.surface,borderRadius:12,boxShadow:T.shadow}}>
+          <div style={{fontSize:14,fontWeight:700,color:T.text}}>{card.name}</div>
+          <div style={{fontSize:12,color:T.textSub,marginTop:4}}>{card.langue} · {card.statut}</div>
+          <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}>
+            <span style={{fontSize:12,color:T.textSub}}>{fmt(card.achat)}</span>
+            <span style={{fontSize:13,fontWeight:700,color:card.valeur>=card.achat?"#34C759":"#FF3B30"}}>{fmt(card.valeur)}</span>
           </div>
-          {/* Toggle */}
-          <div style={{display:"flex",background:T.surface2,borderRadius:8,padding:2,gap:2}}>
-            {[["grid","⊞"],["list","☰"]].map(([m,icon])=>(
-              <button key={m} onClick={()=>setViewMode(m)} style={{padding:"4px 10px",borderRadius:6,fontSize:14,border:"none",cursor:"pointer",background:viewMode===m?T.accent+"18":"transparent",color:viewMode===m?T.accent:T.textSub,fontFamily:"inherit"}}>
-                {icon}
-              </button>
-            ))}
+          <div style={{display:"flex",gap:8,marginTop:8}}>
+            <button onClick={()=>onEdit(card)} style={{flex:1,padding:"8px",background:T.isDark?"#2C2C2E":"#F2F2F7",border:"none",borderRadius:8,color:T.textSub,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>✏️ Modifier</button>
+            <button onClick={()=>onDelete(tcg.id,card.id)} style={{flex:1,padding:"8px",background:"rgba(255,59,48,0.08)",border:"none",borderRadius:8,color:"#FF3B30",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑 Suppr.</button>
           </div>
         </div>
-      )}
-      {actives.length===0?(
-        <div style={{textAlign:"center",padding:"60px 20px",color:T.textSub}}>
-          <div style={{fontSize:44,marginBottom:14}}>📭</div>
-          <div style={{fontSize:17,fontWeight:700,color:T.text,marginBottom:6}}>Aucune carte</div>
-          <div style={{fontSize:14}}>Appuie sur + pour en ajouter</div>
-        </div>
-      ):viewMode==="grid"?(
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-          {actives.map(card=><CardGridItem key={card.id} card={card} tcg={tcg.id} tcgColor={tcg.color} onEdit={onEdit} onDelete={onDelete} T={T} img={images?.[String(card.id)]}/>)}
-        </div>
-      ):(
-        actives.map(card=><CardListItem key={card.id} card={card} tcg={tcg.id} tcgColor={tcg.color} onEdit={onEdit} onDelete={onDelete} T={T} img={images?.[String(card.id)]} onUpload={onUpload}/>)
-      )}
+      ))}
     </div>
   );
 }
