@@ -254,6 +254,7 @@ function CardGrid({ card, tcgId, img, onEdit, onDelete, onUpload, T }) {
                 const r = new FileReader(); r.onload = ev => { onUpload(card.id, ev.target.result); setOpen(false); }; r.readAsDataURL(file);
               }} />
             </label>
+            <button onClick={() => window.open(buildCMUrl(card), "_blank")} style={{ width: "100%", padding: "11px", background: "rgba(0,122,255,0.1)", border: "none", borderRadius: 10, color: T.accent, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginBottom: 8 }}>📊 Voir sur Cardmarket</button>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <button onClick={() => { setOpen(false); onEdit(card); }} style={{ padding: "11px", background: T.isDark ? "#2C2C2E" : "#E5E5EA", border: "none", borderRadius: 10, color: T.textSub, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>✏️ Modifier</button>
               <button onClick={() => { setOpen(false); onDelete(tcgId, card.id); }} style={{ padding: "11px", background: "rgba(255,59,48,0.08)", border: "none", borderRadius: 10, color: T.red, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>🗑 Supprimer</button>
