@@ -116,6 +116,7 @@ function CardModal({ tcg, card, onSave, onClose, T }) {
           </div>
           {f.vendu && <input style={inp} type="number" placeholder="Prix de vente €" value={f.prixVente} onChange={e => set("prixVente", e.target.value)} />}
           <input style={inp} placeholder="Notes..." value={f.notes} onChange={e => set("notes", e.target.value)} />
+          <input style={inp} placeholder="Lien photo (URL)" value={f.photoUrl || ""} onChange={e => set("photoUrl", e.target.value)} />
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
           <button onClick={onClose} style={{ flex: 1, padding: "14px", background: T.isDark ? "#2C2C2E" : "#E5E5EA", border: "none", borderRadius: 12, color: T.textSub, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Annuler</button>
@@ -142,8 +143,8 @@ function Card({ card, tcgId, img, onEdit, onDelete, onUpload, T }) {
   return (
     <div style={{ marginBottom: 10, borderRadius: 14, background: T.surface, boxShadow: T.shadow, overflow: "hidden" }}>
       <div onClick={() => setOpen(!open)} style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
-        {img
-          ? <img src={img} alt={card.name} style={{ width: 48, height: 64, borderRadius: 8, objectFit: "contain", background: T.surface2, flexShrink: 0 }} />
+        {(img || card.photoUrl)
+          ? <img src={img || card.photoUrl} alt={card.name} style={{ width: 48, height: 64, borderRadius: 8, objectFit: "contain", background: T.surface2, flexShrink: 0 }} onError={e => e.target.style.display="none"} />
           : <div style={{ width: 48, height: 64, borderRadius: 8, background: T.surface2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🃏</div>
         }
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -297,6 +298,7 @@ function SealedModal({ item, onSave, onClose, T }) {
             <input style={inp} type="number" placeholder="Actuel € (unitaire)" value={f.valeur} onChange={e => set("valeur", e.target.value)} />
           </div>
           <input style={inp} placeholder="Notes..." value={f.notes} onChange={e => set("notes", e.target.value)} />
+          <input style={inp} placeholder="Lien photo (URL)" value={f.photoUrl || ""} onChange={e => set("photoUrl", e.target.value)} />
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
           <button onClick={onClose} style={{ flex: 1, padding: "14px", background: T.isDark ? "#2C2C2E" : "#E5E5EA", border: "none", borderRadius: 12, color: T.textSub, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Annuler</button>
@@ -534,11 +536,7 @@ export default function App() {
     const key = String(cardId);
     const stored = loadImages();
     stored[key] = b64;
-    try {
-      localStorage.setItem(IMG_KEY, JSON.stringify(stored));
-      const verify = JSON.parse(localStorage.getItem(IMG_KEY) || "{}");
-      alert("Photo sauvegardée ! Clé: " + key + " - OK: " + (verify[key] ? "OUI" : "NON"));
-    } catch(e) { alert("Erreur: " + e.message); }
+    try { localStorage.setItem(IMG_KEY, JSON.stringify(stored)); } catch {}
     setImages({ ...stored });
   }
 
