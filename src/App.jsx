@@ -403,7 +403,7 @@ function LiquiditeView({ data, onInjecter, onEditInj, onDeleteInj, T }) {
   const totalInjecte = hist.filter(h => h.type === "injection").reduce((s, h) => s + h.montant, 0);
   const allCards = [...(data.pokemon || []), ...(data.op || []), ...(data.dbz || [])];
   const totalAchats = allCards.filter(c => c.surLiquidite && !c.vendu).reduce((s, c) => s + c.achat, 0);
-  const totalVentes = allCards.filter(c => c.vendu && c.surLiquidite && c.prixVente).reduce((s, c) => s + c.prixVente, 0);
+  const totalVentes = allCards.filter(c => c.vendu && c.prixVente).reduce((s, c) => s + c.prixVente, 0);
   const solde = totalInjecte - totalAchats + totalVentes;
   const [showInject, setShowInject] = useState(false);
   const [editIdx, setEditIdx] = useState(null);
@@ -491,7 +491,7 @@ function Dashboard({ data, onGoLiquidite, T }) {
   const hist = data.liquidite?.historique || [];
   const totalInjecte = hist.filter(h => h.type === "injection").reduce((s, h) => s + h.montant, 0);
   const totalAchats = allCards.filter(c => c.surLiquidite && !c.vendu).reduce((s, c) => s + c.achat, 0);
-  const totalVentes = allCards.filter(c => c.vendu && c.surLiquidite && c.prixVente).reduce((s, c) => s + c.prixVente, 0);
+  const totalVentes = allCards.filter(c => c.vendu && c.prixVente).reduce((s, c) => s + c.prixVente, 0);
   const solde = totalInjecte - totalAchats + totalVentes;
   return (
     <div>
