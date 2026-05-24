@@ -170,19 +170,37 @@ function Card({ card, tcgId, img, onEdit, onDelete, onUpload, T }) {
               </div>
             ))}
           </div>
-          {card.notes && <div style={{ fontSize: 13, color: T.textSub, marginBottom: 12, padding: "10px 12px", background: T.surface2, borderRadius: 8 }}><RenderNotes notes={card.notes} /></div>}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-            <a href={buildCMUrl(card)} target="_blank" rel="noopener noreferrer" style={{ padding: "11px", background: "rgba(0,122,255,0.1)", borderRadius: 10, color: T.accent, fontSize: 13, textDecoration: "none", fontWeight: 600, textAlign: "center", display: "block" }}>📊 Cardmarket</a>
-            <label style={{ padding: "11px", background: "rgba(99,102,241,0.1)", borderRadius: 10, color: "#818cf8", fontSize: 13, fontWeight: 600, textAlign: "center", display: "block", cursor: "pointer" }}>
-              📷 Photo
-              <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
-                const file = e.target.files?.[0]; if (!file) return;
-                const r = new FileReader();
-                r.onload = ev => onUpload(card.id, ev.target.result);
-                r.readAsDataURL(file);
-              }} />
-            </label>
-          </div>
+          {card.notes && (() => {
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const urls = card.notes.match(urlRegex) || [];
+            const text = card.notes.replace(urlRegex, "").trim();
+            return (
+              <div style={{ marginBottom: 12 }}>
+                {text && <div style={{ fontSize: 13, color: T.textSub, padding: "10px 12px", background: T.surface2, borderRadius: 8, marginBottom: urls.length ? 8 : 0 }}>{text}</div>}
+                {urls.map((url, i) => {
+                  const label = url.includes("cardmarket") ? "📊 Voir sur Cardmarket"
+                    : url.includes("ebay") ? "🔍 Voir sur eBay"
+                    : url.includes("vinted") ? "👕 Voir sur Vinted"
+                    : "🔗 Ouvrir le lien";
+                  return (
+                    <button key={i} onClick={() => window.open(url, "_blank")}
+                      style={{ width: "100%", padding: "11px", background: "rgba(0,122,255,0.1)", border: "none", borderRadius: 10, color: T.accent, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginBottom: i < urls.length - 1 ? 6 : 0 }}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
+          <label style={{ padding: "11px", background: "rgba(99,102,241,0.1)", borderRadius: 10, color: "#818cf8", fontSize: 13, fontWeight: 600, textAlign: "center", display: "block", cursor: "pointer", marginBottom: 8 }}>
+            📷 Ajouter une photo
+            <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+              const file = e.target.files?.[0]; if (!file) return;
+              const r = new FileReader();
+              r.onload = ev => onUpload(card.id, ev.target.result);
+              r.readAsDataURL(file);
+            }} />
+          </label>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <button onClick={() => onEdit(card)} style={{ padding: "11px", background: T.surface2, border: "none", borderRadius: 10, color: T.textSub, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>✏️ Modifier</button>
             <button onClick={() => onDelete(tcgId, card.id)} style={{ padding: "11px", background: "rgba(255,59,48,0.08)", border: "none", borderRadius: 10, color: T.red, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>🗑 Supprimer</button>
