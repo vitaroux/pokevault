@@ -576,7 +576,7 @@ export default function App() {
       }
       let hist = [...(prev.liquidite?.historique || [])];
       if (!exists && card.surLiquidite) hist.push({ type: "achat", montant: card.achat, label: `Achat : ${card.name}`, date: dateStr() });
-      if (!wasVendu && card.vendu && card.prixVente && card.surLiquidite) hist.push({ type: "vente", montant: card.prixVente, label: `Vente : ${card.name}`, date: dateStr() });
+      if (!wasVendu && card.vendu && card.prixVente) hist.push({ type: "vente", montant: card.prixVente, label: `Vente : ${card.name}`, date: dateStr() });
       return { ...nd, liquidite: { ...prev.liquidite, historique: hist } };
     });
     setModal(null);
