@@ -22,7 +22,13 @@ function loadData() {
 }
 function saveData(d) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch {} }
 function loadTheme() { try { return localStorage.getItem(THEME_KEY) || "light"; } catch { return "light"; } }
-function loadImages() { try { return JSON.parse(localStorage.getItem(IMG_KEY) || "{}"); } catch { return {}; } }
+function loadImages() {
+  try {
+    const raw = localStorage.getItem(IMG_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch { return {}; }
+}
 
 const fmt = (n) => (n ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "€";
 const pct = (a, b) => a === 0 ? "0.0" : ((b - a) / a * 100).toFixed(1);
@@ -617,14 +623,28 @@ export default function App() {
 
   useEffect(() => { saveData(data); }, [data]);
   useEffect(() => { try { localStorage.setItem(THEME_KEY, theme); } catch {} }, [theme]);
-  useEffect(() => { setImages(loadImages()); }, [tab]);
+  useEffect(() => {
+    const fresh = loadImages();
+    setImages(fresh);
+  }, [tab]);
 
   function handleUpload(cardId, b64) {
     const key = String(cardId);
-    const stored = loadImages();
-    stored[key] = b64;
-    try { localStorage.setItem(IMG_KEY, JSON.stringify(stored)); } catch {}
-    setImages({ ...stored });
+    try {
+      // Read fresh from storage
+      const raw = localStorage.getItem(IMG_KEY);
+      const stored = raw ? JSON.parse(raw) : {};
+      stored[key] = b64;
+      const serialized = JSON.stringify(stored);
+      localStorage.setItem(IMG_KEY, serialized);
+      // Verify it was saved
+      const check = localStorage.getItem(IMG_KEY);
+      if (check === serialized) {
+        setImages(JSON.parse(check));
+      }
+    } catch(e) {
+      console.error("Upload failed:", e);
+    }
   }
 
   function handleSave(card) {
