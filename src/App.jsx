@@ -211,15 +211,70 @@ function Card({ card, tcgId, img, onEdit, onDelete, onUpload, T }) {
   );
 }
 
+
+// ── CARD GRID ─────────────────────────────────────────────────────────────────
+function CardGrid({ card, tcgId, img, onEdit, onDelete, onUpload, T }) {
+  const [open, setOpen] = useState(false);
+  const gain = card.valeur - card.achat;
+  const gainPct = parseFloat((card.achat === 0 ? 0 : (gain / card.achat * 100)).toFixed(1));
+  const up = gain >= 0;
+  const displayImg = img || card.photoUrl;
+  return (
+    <div style={{ borderRadius: 12, overflow: "hidden", background: T.isDark ? "#1C1C1E" : "#E5E5EA", position: "relative", paddingBottom: "150%" }}>
+      <div onClick={() => setOpen(true)} style={{ position: "absolute", inset: 0, cursor: "pointer" }}>
+        {displayImg
+          ? <img src={displayImg} alt={card.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
+          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30 }}>🃏</div>
+        }
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "18px 6px 6px", background: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)" }}>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.75)", marginBottom: 1 }}>{fmt(card.achat)}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: up ? "#30D158" : "#FF453A" }}>{fmt(card.valeur)}</div>
+        </div>
+        <div style={{ position: "absolute", top: 5, right: 5, background: up ? "rgba(48,209,88,0.9)" : "rgba(255,69,58,0.9)", borderRadius: 6, padding: "2px 6px" }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "#fff" }}>{up ? "+" : ""}{gainPct}%</span>
+        </div>
+      </div>
+      {open && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 200 }} onClick={() => setOpen(false)}>
+          <div style={{ background: T.isDark ? "#1C1C1E" : "#F2F2F7", borderRadius: "20px 20px 0 0", padding: "20px 16px 44px", width: "100%", maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: 36, height: 4, background: T.isDark ? "#3A3A3C" : "#D1D1D6", borderRadius: 2, margin: "0 auto 16px" }} />
+            <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 14 }}>{card.name}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 14 }}>
+              {[["Achat", fmt(card.achat)], ["Actuel", fmt(card.valeur)], ["P&L", (gain >= 0 ? "+" : "") + fmt(gain)], ["ROI", (gainPct >= 0 ? "+" : "") + gainPct + "%"]].map(([k, v]) => (
+                <div key={k} style={{ background: T.isDark ? "#2C2C2E" : "#fff", borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
+                  <div style={{ fontSize: 9, color: T.textSub, textTransform: "uppercase", marginBottom: 2 }}>{k}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>{v}</div>
+                </div>
+              ))}
+            </div>
+            <label style={{ padding: "11px", background: "rgba(99,102,241,0.1)", borderRadius: 10, color: "#818cf8", fontSize: 13, fontWeight: 600, textAlign: "center", display: "block", cursor: "pointer", marginBottom: 10 }}>
+              📷 Ajouter une photo
+              <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                const file = e.target.files?.[0]; if (!file) return;
+                const r = new FileReader(); r.onload = ev => { onUpload(card.id, ev.target.result); setOpen(false); }; r.readAsDataURL(file);
+              }} />
+            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <button onClick={() => { setOpen(false); onEdit(card); }} style={{ padding: "11px", background: T.isDark ? "#2C2C2E" : "#E5E5EA", border: "none", borderRadius: 10, color: T.textSub, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>✏️ Modifier</button>
+              <button onClick={() => { setOpen(false); onDelete(tcgId, card.id); }} style={{ padding: "11px", background: "rgba(255,59,48,0.08)", border: "none", borderRadius: 10, color: T.red, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>🗑 Supprimer</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── TCG VIEW ──────────────────────────────────────────────────────────────────
 function TcgView({ tcg, cards, images, onEdit, onDelete, onUpload, T }) {
+  const [view, setView] = useState("grid");
   const actives = cards.filter(c => !c.vendu);
   const inv = actives.reduce((s, c) => s + c.achat, 0);
   const val = actives.reduce((s, c) => s + c.valeur, 0);
   const gain = val - inv;
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
         {[["Investi", fmt(inv), T.accent], ["Valeur", fmt(val), T.text], ["P&L", (gain >= 0 ? "+" : "") + fmt(gain), gain >= 0 ? T.green : T.red]].map(([k, v, c]) => (
           <div key={k} style={{ background: T.surface, borderRadius: 12, padding: "12px 8px", textAlign: "center", boxShadow: T.shadow }}>
             <div style={{ fontSize: 10, color: T.textSub, textTransform: "uppercase", marginBottom: 4 }}>{k}</div>
@@ -227,13 +282,26 @@ function TcgView({ tcg, cards, images, onEdit, onDelete, onUpload, T }) {
           </div>
         ))}
       </div>
+      {actives.length > 0 && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <div style={{ display: "flex", background: T.surface, borderRadius: 8, padding: 2, gap: 2, boxShadow: T.shadow }}>
+            {[["grid", "⊞"], ["list", "☰"]].map(([m, icon]) => (
+              <button key={m} onClick={() => setView(m)} style={{ padding: "5px 12px", borderRadius: 6, fontSize: 15, border: "none", cursor: "pointer", background: view === m ? T.accent : "transparent", color: view === m ? "#fff" : T.textSub, fontFamily: "inherit" }}>{icon}</button>
+            ))}
+          </div>
+        </div>
+      )}
       {actives.length === 0
         ? <div style={{ textAlign: "center", padding: "60px 20px", color: T.textSub }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>📭</div>
             <div style={{ fontSize: 16, fontWeight: 600, color: T.text }}>Aucune carte</div>
             <div style={{ fontSize: 13, marginTop: 4 }}>Appuie sur + pour ajouter</div>
           </div>
-        : actives.map(c => <Card key={c.id} card={c} tcgId={tcg.id} img={images[String(c.id)]} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} />)
+        : view === "grid"
+          ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+              {actives.map(c => <CardGrid key={c.id} card={c} tcgId={tcg.id} img={images[String(c.id)]} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} />)}
+            </div>
+          : actives.map(c => <Card key={c.id} card={c} tcgId={tcg.id} img={images[String(c.id)]} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} />)
       }
     </div>
   );
