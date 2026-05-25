@@ -315,10 +315,19 @@ function CardGrid({ card, tcgId, onEdit, onDelete, onUpload, T, imgVersion }) {
 // ── TCG VIEW ──────────────────────────────────────────────────────────────────
 function TcgView({ tcg, cards, imgVersion, onEdit, onDelete, onUpload, T }) {
   const [view, setView] = useState("grid");
-  const actives = cards.filter(c => !c.vendu);
+  const [sort, setSort] = useState("valeur-desc");
+  const [showSort, setShowSort] = useState(false);
+  const sorted = [...cards.filter(c => !c.vendu)].sort((a, b) => {
+    if (sort === "achat-asc") return a.achat - b.achat;
+    if (sort === "achat-desc") return b.achat - a.achat;
+    if (sort === "valeur-asc") return a.valeur - b.valeur;
+    return b.valeur - a.valeur;
+  });
+  const actives = sorted;
   const inv = actives.reduce((s, c) => s + c.achat, 0);
   const val = actives.reduce((s, c) => s + c.valeur, 0);
   const gain = val - inv;
+  const sortLabels = { "achat-desc": "Achat ↓", "achat-asc": "Achat ↑", "valeur-desc": "Actuel ↓", "valeur-asc": "Actuel ↑" };
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
@@ -330,7 +339,19 @@ function TcgView({ tcg, cards, imgVersion, onEdit, onDelete, onUpload, T }) {
         ))}
       </div>
       {actives.length > 0 && (
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ position: "relative" }}>
+            <button onClick={() => setShowSort(s => !s)} style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, border: "none", cursor: "pointer", background: T.surface, color: T.textSub, fontFamily: "inherit", boxShadow: T.shadow }}>
+              ⇅ {sortLabels[sort]}
+            </button>
+            {showSort && (
+              <div style={{ position: "absolute", left: 0, top: 36, background: T.surface, borderRadius: 12, overflow: "hidden", zIndex: 50, minWidth: 140, boxShadow: T.shadowMd }}>
+                {Object.entries(sortLabels).map(([v, l]) => (
+                  <button key={v} onClick={() => { setSort(v); setShowSort(false); }} style={{ display: "block", width: "100%", padding: "12px 14px", textAlign: "left", background: sort === v ? T.accent + "18" : "transparent", color: sort === v ? T.accent : T.text, border: "none", cursor: "pointer", fontSize: 13, fontWeight: sort === v ? 600 : 400, fontFamily: "inherit" }}>{l}</button>
+                ))}
+              </div>
+            )}
+          </div>
           <div style={{ display: "flex", background: T.surface, borderRadius: 8, padding: 2, gap: 2, boxShadow: T.shadow }}>
             {[["grid", "⊞"], ["list", "☰"]].map(([m, icon]) => (
               <button key={m} onClick={() => setView(m)} style={{ padding: "5px 12px", borderRadius: 6, fontSize: 15, border: "none", cursor: "pointer", background: view === m ? T.accent : "transparent", color: view === m ? "#fff" : T.textSub, fontFamily: "inherit" }}>{icon}</button>
