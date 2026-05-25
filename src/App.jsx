@@ -634,20 +634,13 @@ export default function App() {
   function handleUpload(cardId, b64) {
     const key = String(cardId);
     try {
-      // Read fresh from storage
       const raw = localStorage.getItem(IMG_KEY);
       const stored = raw ? JSON.parse(raw) : {};
       stored[key] = b64;
-      const serialized = JSON.stringify(stored);
-      localStorage.setItem(IMG_KEY, serialized);
-      // Verify it was saved
-      const check = localStorage.getItem(IMG_KEY);
-      if (check === serialized) {
-        setImages(JSON.parse(check));
-      }
-    } catch(e) {
-      console.error("Upload failed:", e);
-    }
+      localStorage.setItem(IMG_KEY, JSON.stringify(stored));
+    } catch(e) {}
+    // Force re-render with new object reference
+    setImages(prev => ({ ...prev, [String(cardId)]: b64 }));
   }
 
   function handleSave(card) {
