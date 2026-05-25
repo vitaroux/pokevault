@@ -137,8 +137,8 @@ function CardModal({ tcg, card, onSave, onClose, T }) {
 }
 
 // ── CARD ──────────────────────────────────────────────────────────────────────
-function Card({ card, tcgId, images, onEdit, onDelete, onUpload, T }) {
-  const img = images?.[String(card.id)] || images?.[card.id];
+function Card({ card, tcgId, onEdit, onDelete, onUpload, T }) {
+  const img = loadImages()[String(card.id)];
   const [open, setOpen] = useState(false);
   const gain = card.valeur - card.achat;
   const gainPct = parseFloat(pct(card.achat, card.valeur));
@@ -220,8 +220,8 @@ function Card({ card, tcgId, images, onEdit, onDelete, onUpload, T }) {
 
 
 // ── CARD GRID ─────────────────────────────────────────────────────────────────
-function CardGrid({ card, tcgId, images, onEdit, onDelete, onUpload, T }) {
-  const img = images?.[String(card.id)] || images?.[card.id];
+function CardGrid({ card, tcgId, onEdit, onDelete, onUpload, T }) {
+  const img = loadImages()[String(card.id)];
   const [open, setOpen] = useState(false);
   const gain = card.valeur - card.achat;
   const gainPct = parseFloat((card.achat === 0 ? 0 : (gain / card.achat * 100)).toFixed(1));
@@ -275,8 +275,9 @@ function CardGrid({ card, tcgId, images, onEdit, onDelete, onUpload, T }) {
 }
 
 // ── TCG VIEW ──────────────────────────────────────────────────────────────────
-function TcgView({ tcg, cards, images, onEdit, onDelete, onUpload, T }) {
+function TcgView({ tcg, cards, imgVersion, onEdit, onDelete, onUpload, T }) {
   const [view, setView] = useState("grid");
+  const images = loadImages();
   const actives = cards.filter(c => !c.vendu);
   const inv = actives.reduce((s, c) => s + c.achat, 0);
   const val = actives.reduce((s, c) => s + c.valeur, 0);
@@ -308,9 +309,9 @@ function TcgView({ tcg, cards, images, onEdit, onDelete, onUpload, T }) {
           </div>
         : view === "grid"
           ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-              {actives.map(c => <CardGrid key={c.id} card={c} tcgId={tcg.id} images={images} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} />)}
+              {actives.map(c => <CardGrid key={c.id} card={c} tcgId={tcg.id} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} />)}
             </div>
-          : actives.map(c => <Card key={c.id} card={c} tcgId={tcg.id} images={images} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} />)
+          : actives.map(c => <Card key={c.id} card={c} tcgId={tcg.id} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} />)
       }
     </div>
   );
@@ -623,7 +624,7 @@ export default function App() {
   const [tab, setTab] = useState("dashboard");
   const [modal, setModal] = useState(null);
   const [theme, setTheme] = useState(loadTheme);
-  const [images, setImages] = useState(loadImages);
+  const [imgVersion, setImgVersion] = useState(0);
   const T = theme === "dark" ? DARK : LIGHT;
 
   useEffect(() => { saveData(data); }, [data]);
@@ -631,20 +632,13 @@ export default function App() {
 
 
   function handleUpload(cardId, b64) {
-    const key = String(cardId);
-    // Save to localStorage
     try {
       const raw = localStorage.getItem(IMG_KEY);
       const stored = raw ? JSON.parse(raw) : {};
-      stored[key] = b64;
+      stored[String(cardId)] = b64;
       localStorage.setItem(IMG_KEY, JSON.stringify(stored));
     } catch(e) {}
-    // Update state - creates new object reference to force re-render
-    setImages(prev => {
-      const next = { ...prev };
-      next[key] = b64;
-      return next;
-    });
+    setImgVersion(v => v + 1);
   }
 
   function handleSave(card) {
@@ -719,7 +713,7 @@ export default function App() {
         {/* CONTENT */}
         <div style={{ padding: "0 14px" }}>
           {tab === "dashboard" && <Dashboard data={data} onGoLiquidite={() => setTab("liquidite")} T={T} />}
-          {activeTcg && <TcgView tcg={activeTcg} cards={data[tab] || []} images={images} onEdit={card => setModal({ tcg: tab, card })} onDelete={handleDelete} onUpload={handleUpload} T={T} />}
+          {activeTcg && <TcgView tcg={activeTcg} cards={data[tab] || []} imgVersion={imgVersion} onEdit={card => setModal({ tcg: tab, card })} onDelete={handleDelete} onUpload={handleUpload} T={T} />}
           {tab === "liquidite" && <LiquiditeView data={data} onInjecter={handleInjecter} onEditInj={handleEditInj} onDeleteInj={handleDeleteInj} T={T} />}
           {tab === "sealed" && <SealedView items={data.sealed || []} onSave={handleSealedSave} onDelete={handleSealedDelete} T={T} />}
           {tab === "vendues" && <VenduesView data={data} onRestaurer={handleRestaurer} T={T} />}
