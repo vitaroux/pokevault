@@ -137,7 +137,7 @@ function CardModal({ tcg, card, onSave, onClose, T }) {
 }
 
 // ── CARD ──────────────────────────────────────────────────────────────────────
-function Card({ card, tcgId, onEdit, onDelete, onUpload, T }) {
+function Card({ card, tcgId, onEdit, onDelete, onUpload, T, imgVersion }) {
   const img = loadImages()[String(card.id)];
   const [open, setOpen] = useState(false);
   const gain = card.valeur - card.achat;
@@ -220,7 +220,7 @@ function Card({ card, tcgId, onEdit, onDelete, onUpload, T }) {
 
 
 // ── CARD GRID ─────────────────────────────────────────────────────────────────
-function CardGrid({ card, tcgId, onEdit, onDelete, onUpload, T }) {
+function CardGrid({ card, tcgId, onEdit, onDelete, onUpload, T, imgVersion }) {
   const img = loadImages()[String(card.id)];
   const [open, setOpen] = useState(false);
   const gain = card.valeur - card.achat;
@@ -309,9 +309,9 @@ function TcgView({ tcg, cards, imgVersion, onEdit, onDelete, onUpload, T }) {
           </div>
         : view === "grid"
           ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-              {actives.map(c => <CardGrid key={c.id} card={c} tcgId={tcg.id} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} />)}
+              {actives.map(c => <CardGrid key={c.id} card={c} tcgId={tcg.id} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} imgVersion={imgVersion}/>)}
             </div>
-          : actives.map(c => <Card key={c.id} card={c} tcgId={tcg.id} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} />)
+          : actives.map(c => <Card key={c.id} card={c} tcgId={tcg.id} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} imgVersion={imgVersion}/>)
       }
     </div>
   );
