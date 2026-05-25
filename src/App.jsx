@@ -626,21 +626,23 @@ export default function App() {
 
   useEffect(() => { saveData(data); }, [data]);
   useEffect(() => { try { localStorage.setItem(THEME_KEY, theme); } catch {} }, [theme]);
-  useEffect(() => {
-    const fresh = loadImages();
-    setImages(fresh);
-  }, [tab]);
+
 
   function handleUpload(cardId, b64) {
     const key = String(cardId);
+    // Save to localStorage
     try {
       const raw = localStorage.getItem(IMG_KEY);
       const stored = raw ? JSON.parse(raw) : {};
       stored[key] = b64;
       localStorage.setItem(IMG_KEY, JSON.stringify(stored));
     } catch(e) {}
-    // Force re-render with new object reference
-    setImages(prev => ({ ...prev, [String(cardId)]: b64 }));
+    // Update state - creates new object reference to force re-render
+    setImages(prev => {
+      const next = { ...prev };
+      next[key] = b64;
+      return next;
+    });
   }
 
   function handleSave(card) {
