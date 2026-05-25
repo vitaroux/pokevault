@@ -137,7 +137,8 @@ function CardModal({ tcg, card, onSave, onClose, T }) {
 }
 
 // ── CARD ──────────────────────────────────────────────────────────────────────
-function Card({ card, tcgId, img, onEdit, onDelete, onUpload, T }) {
+function Card({ card, tcgId, images, onEdit, onDelete, onUpload, T }) {
+  const img = images?.[String(card.id)] || images?.[card.id];
   const [open, setOpen] = useState(false);
   const gain = card.valeur - card.achat;
   const gainPct = parseFloat(pct(card.achat, card.valeur));
@@ -219,7 +220,8 @@ function Card({ card, tcgId, img, onEdit, onDelete, onUpload, T }) {
 
 
 // ── CARD GRID ─────────────────────────────────────────────────────────────────
-function CardGrid({ card, tcgId, img, onEdit, onDelete, onUpload, T }) {
+function CardGrid({ card, tcgId, images, onEdit, onDelete, onUpload, T }) {
+  const img = images?.[String(card.id)] || images?.[card.id];
   const [open, setOpen] = useState(false);
   const gain = card.valeur - card.achat;
   const gainPct = parseFloat((card.achat === 0 ? 0 : (gain / card.achat * 100)).toFixed(1));
@@ -306,9 +308,9 @@ function TcgView({ tcg, cards, images, onEdit, onDelete, onUpload, T }) {
           </div>
         : view === "grid"
           ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-              {actives.map(c => <CardGrid key={c.id} card={c} tcgId={tcg.id} img={images[String(c.id)]} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} />)}
+              {actives.map(c => <CardGrid key={c.id} card={c} tcgId={tcg.id} images={images} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} />)}
             </div>
-          : actives.map(c => <Card key={c.id} card={c} tcgId={tcg.id} img={images[String(c.id)]} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} />)
+          : actives.map(c => <Card key={c.id} card={c} tcgId={tcg.id} images={images} onEdit={onEdit} onDelete={onDelete} onUpload={onUpload} T={T} />)
       }
     </div>
   );
