@@ -138,7 +138,8 @@ function CardModal({ tcg, card, onSave, onClose, T }) {
 
 // ── CARD ──────────────────────────────────────────────────────────────────────
 function Card({ card, tcgId, onEdit, onDelete, onUpload, T, imgVersion }) {
-  const img = loadImages()[String(card.id)];
+  const [img, setImg] = useState(null);
+  useEffect(() => { loadImageDB(card.id).then(setImg); }, [card.id, imgVersion]);
   const [open, setOpen] = useState(false);
   const gain = card.valeur - card.achat;
   const gainPct = parseFloat(pct(card.achat, card.valeur));
@@ -221,7 +222,8 @@ function Card({ card, tcgId, onEdit, onDelete, onUpload, T, imgVersion }) {
 
 // ── CARD GRID ─────────────────────────────────────────────────────────────────
 function CardGrid({ card, tcgId, onEdit, onDelete, onUpload, T, imgVersion }) {
-  const img = loadImages()[String(card.id)];
+  const [img, setImg] = useState(null);
+  useEffect(() => { loadImageDB(card.id).then(setImg); }, [card.id, imgVersion]);
   const [open, setOpen] = useState(false);
   const gain = card.valeur - card.achat;
   const gainPct = parseFloat((card.achat === 0 ? 0 : (gain / card.achat * 100)).toFixed(1));
@@ -277,7 +279,6 @@ function CardGrid({ card, tcgId, onEdit, onDelete, onUpload, T, imgVersion }) {
 // ── TCG VIEW ──────────────────────────────────────────────────────────────────
 function TcgView({ tcg, cards, imgVersion, onEdit, onDelete, onUpload, T }) {
   const [view, setView] = useState("grid");
-  const images = loadImages();
   const actives = cards.filter(c => !c.vendu);
   const inv = actives.reduce((s, c) => s + c.achat, 0);
   const val = actives.reduce((s, c) => s + c.valeur, 0);
@@ -631,14 +632,11 @@ export default function App() {
   useEffect(() => { try { localStorage.setItem(THEME_KEY, theme); } catch {} }, [theme]);
 
 
-  function handleUpload(cardId, b64) {
+  async function handleUpload(cardId, b64) {
     try {
-      const raw = localStorage.getItem(IMG_KEY);
-      const stored = raw ? JSON.parse(raw) : {};
-      stored[String(cardId)] = b64;
-      localStorage.setItem(IMG_KEY, JSON.stringify(stored));
-    } catch(e) {}
-    setImgVersion(v => v + 1);
+      await saveImageDB(cardId, b64);
+      setImgVersion(v => v + 1);
+    } catch(e) { console.error("Upload failed:", e); }
   }
 
   function handleSave(card) {
