@@ -521,8 +521,10 @@ function LiquiditeView({ data, onInjecter, onEditInj, onDeleteInj, T }) {
                     <div style={{ fontSize: 14, fontWeight: 700, color: h.type === "achat" ? T.red : T.green }}>{h.type === "achat" ? "-" : "+"}{fmt(h.montant)}</div>
                     {h.type === "injection" && <>
                       <button onClick={() => { setEditIdx(realIdx); setMontant(String(h.montant)); setLabel(h.label); setShowInject(true); }} style={{ width: 28, height: 28, borderRadius: 8, background: T.surface2, border: "none", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>✏️</button>
-                      <button onClick={() => onDeleteInj(realIdx)} style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,59,48,0.08)", border: "none", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", color: T.red }}>🗑</button>
                     </>}
+                  {(h.type === "injection" || h.type === "vente") && (
+                    <button onClick={() => onDeleteInj(realIdx)} style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,59,48,0.08)", border: "none", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", color: T.red }}>🗑</button>
+                  )}
                   </div>
                 </div>
               );
@@ -673,7 +675,19 @@ export default function App() {
   }
 
   function handleDelete(tcg, id) { setData(p => ({ ...p, [tcg]: (p[tcg] || []).filter(c => c.id !== id) })); }
-  function handleRestaurer(tcg, id) { setData(p => ({ ...p, [tcg]: (p[tcg] || []).map(c => c.id === id ? { ...c, vendu: false, prixVente: null } : c) })); }
+  function handleRestaurer(tcg, id) {
+    setData(p => {
+      const card = (p[tcg] || []).find(c => c.id === id);
+      const newCards = (p[tcg] || []).map(c => c.id === id ? { ...c, vendu: false, prixVente: null } : c);
+      // Remove last matching vente from historique
+      let hist = [...(p.liquidite?.historique || [])];
+      if (card) {
+        const idx = [...hist].reverse().findIndex(h => h.type === "vente" && h.label === `Vente : ${card.name}`);
+        if (idx !== -1) hist.splice(hist.length - 1 - idx, 1);
+      }
+      return { ...p, [tcg]: newCards, liquidite: { ...p.liquidite, historique: hist } };
+    });
+  }
   function handleSealedSave(item) { setData(p => { const l = p.sealed || []; const e = l.find(i => i.id === item.id); return { ...p, sealed: e ? l.map(i => i.id === item.id ? item : i) : [...l, item] }; }); }
   function handleSealedDelete(id) { setData(p => ({ ...p, sealed: (p.sealed || []).filter(i => i.id !== id) })); }
   function handleInjecter(m, l) { setData(p => ({ ...p, liquidite: { ...p.liquidite, historique: [...(p.liquidite?.historique || []), { type: "injection", montant: m, label: l, date: dateStr() }] } })); }
