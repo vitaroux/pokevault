@@ -566,8 +566,8 @@ function Dashboard({ data, onGoLiquidite, T }) {
   const roi = inv === 0 ? 0 : ((val - inv) / inv * 100).toFixed(1);
   const hist = data.liquidite?.historique || [];
   const totalInjecte = hist.filter(h => h.type === "injection").reduce((s, h) => s + h.montant, 0);
-  const totalAchats = allCards.filter(c => c.surLiquidite && !c.vendu).reduce((s, c) => s + c.achat, 0);
-  const totalVentes = allCards.filter(c => c.vendu && c.prixVente).reduce((s, c) => s + c.prixVente, 0);
+  const totalVentes = hist.filter(h => h.type === "vente").reduce((s, h) => s + h.montant, 0);
+  const totalAchats = hist.filter(h => h.type === "achat").reduce((s, h) => s + h.montant, 0);
   const solde = totalInjecte - totalAchats + totalVentes;
   return (
     <div>
