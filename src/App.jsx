@@ -71,13 +71,14 @@ const pct = (a, b) => a === 0 ? "0.0" : ((b - a) / a * 100).toFixed(1);
 const dateStr = () => new Date().toLocaleDateString("fr-FR");
 
 function parseImportCSV(text) {
-  const lines = text.trim().split(/\r?\n/);
+  const sep = text.includes("\t") ? "\t" : text.includes(";") ? ";" : ",";
+  const lines = text.trim().split("\n").map(l => l.replace("\r",""));
   if (lines.length < 2) return [];
-  const headers = lines[0].split(/\t|;|,/).map(h => h.trim().toLowerCase()
-    .replace("é","e").replace("è","e").replace("ê","e").replace("ô","o").replace("û","u").replace("ù","u").replace("à","a").replace("ç","c"));
+  const normalize = s => s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const headers = lines[0].split(sep).map(normalize);
   const cards = [];
   for (let i = 1; i < lines.length; i++) {
-    const row = lines[i].split(/\t|;|,/).map(c => c.trim().replace(/^"|"$/g, ""));
+    const row = lines[i].split(sep).map(c => c.trim().replace(/^"|"$/g,""));
     if (!row[0]) continue;
     const get = (key) => { const idx = headers.indexOf(key); return idx >= 0 ? row[idx] || "" : ""; };
     const tcgRaw = get("tcg").toLowerCase();
