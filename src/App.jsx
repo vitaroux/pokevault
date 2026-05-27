@@ -70,6 +70,39 @@ const fmt = (n) => (n ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, 
 const pct = (a, b) => a === 0 ? "0.0" : ((b - a) / a * 100).toFixed(1);
 const dateStr = () => new Date().toLocaleDateString("fr-FR");
 
+function parseImportCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(/\t|;|,/).map(h => h.trim().toLowerCase()
+    .replace("é","e").replace("è","e").replace("ê","e").replace("ô","o").replace("û","u").replace("ù","u").replace("à","a").replace("ç","c"));
+  const cards = [];
+  for (let i = 1; i < lines.length; i++) {
+    const row = lines[i].split(/\t|;|,/).map(c => c.trim().replace(/^"|"$/g, ""));
+    if (!row[0]) continue;
+    const get = (key) => { const idx = headers.indexOf(key); return idx >= 0 ? row[idx] || "" : ""; };
+    const tcgRaw = get("tcg").toLowerCase();
+    const tcg = tcgRaw === "op" || tcgRaw === "one piece" ? "op" : tcgRaw === "dbz" || tcgRaw === "dragon ball" ? "dbz" : "pokemon";
+    const surLiq = get("surliquidute").toLowerCase() === "oui" || get("surliquidite").toLowerCase() === "oui";
+    cards.push({
+      id: Date.now() + i,
+      name: get("nom"),
+      numero: get("numero") || get("numéro") || "",
+      set: get("set") || "",
+      langue: get("langue") || "JP",
+      statut: get("statut") || "Raw NM",
+      achat: parseFloat(get("achat")) || 0,
+      valeur: parseFloat(get("valeur")) || parseFloat(get("achat")) || 0,
+      surLiquidite: surLiq,
+      vendu: false,
+      prixVente: null,
+      notes: get("notes") || "",
+      photoUrl: "",
+      _tcg: tcg,
+    });
+  }
+  return cards;
+}
+
 const LIGHT = {
   bg: "#F2F2F7", surface: "#FFFFFF", surface2: "#F2F2F7",
   border: "rgba(60,60,67,0.1)", text: "#000000", textSub: "#8E8E93",
@@ -683,6 +716,7 @@ export default function App() {
   const [modal, setModal] = useState(null);
   const [theme, setTheme] = useState(loadTheme);
   const [imgVersion, setImgVersion] = useState(0);
+  const [showImport, setShowImport] = useState(false);
   const T = theme === "dark" ? DARK : LIGHT;
 
   useEffect(() => { saveData(data); }, [data]);
@@ -721,6 +755,22 @@ export default function App() {
   }
 
   function handleDelete(tcg, id) { setData(p => ({ ...p, [tcg]: (p[tcg] || []).filter(c => c.id !== id) })); }
+
+  function handleImport(cards) {
+    setData(prev => {
+      const nd = { ...prev };
+      const hist = [...(prev.liquidite?.historique || [])];
+      cards.forEach(card => {
+        const tcg = card._tcg || "pokemon";
+        nd[tcg] = [...(nd[tcg] || []), { ...card, id: Date.now() + Math.random() }];
+        if (card.surLiquidite) {
+          hist.push({ type: "achat", montant: card.achat, label: `Achat : ${card.name}`, date: dateStr() });
+        }
+      });
+      return { ...nd, liquidite: { ...prev.liquidite, historique: hist } };
+    });
+    setShowImport(false);
+  }
   function handleRestaurer(tcg, id) {
     setData(p => {
       const card = (p[tcg] || []).find(c => c.id === id);
@@ -757,6 +807,7 @@ export default function App() {
             <button onClick={() => setTheme(t => t === "dark" ? "light" : "dark")} style={{ width: 34, height: 34, borderRadius: "50%", background: T.surface, border: `1px solid ${T.border}`, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>{theme === "dark" ? "☀️" : "🌙"}</button>
             {activeTcg && <button onClick={() => setModal({ tcg: tab })} style={{ width: 34, height: 34, borderRadius: "50%", background: T.accent, border: "none", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>}
             {tab === "sealed" && <button onClick={() => setModal({ tcg: "sealed" })} style={{ width: 34, height: 34, borderRadius: "50%", background: T.accent, border: "none", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>}
+            {(activeTcg || tab === "sealed") && <button onClick={() => setShowImport(true)} style={{ width: 34, height: 34, borderRadius: "50%", background: T.isDark ? "#2C2C2E" : "#E5E5EA", border: "none", color: T.textSub, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>📥</button>}
           </div>
         </div>
         {/* TITLE */}
@@ -789,6 +840,7 @@ export default function App() {
           );
         })}
       </div>
+      {showImport && <ImportModal onImport={handleImport} onClose={() => setShowImport(false)} T={T} />}
       {modal && modal.tcg !== "sealed" && <CardModal tcg={modal.tcg} card={modal.card} onSave={handleSave} onClose={() => setModal(null)} T={T} />}
       {modal && modal.tcg === "sealed" && <SealedModal item={modal.card} onSave={item => { handleSealedSave(item); setModal(null); }} onClose={() => setModal(null)} T={T} />}
     </>
